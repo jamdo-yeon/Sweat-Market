@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Post</h2>
+
+<div class="border rounded p-4 mb-6">
+  <div class="mb-2 text-sm text-gray-600">
+    <strong>{{ author.nickname or author.username }}</strong>
+    · {{ post.created_at.strftime('%Y-%m-%d %H:%M') if post.created_at else '' }}
+  </div>
+
+  {% if post.image_url %}
+    <img src="{{ post.image_url }}" class="max-h-96 mb-3 rounded"/>
+  {% endif %}
+
+  <p class="mb-4 whitespace-pre-line">{{ post.caption }}</p>
+
+  {% if user and user.id != author.id %}
+  <form method="post" action="/chat/start" class="inline">
+    <input type="hidden" name="user_id" value="{{ author.id }}">
+    <button class="bg-purple-600 text-white px-3 py-1 rounded">Message</button>
+  </form>
+  {% endif %}
+</div>
+
+<h3 class="font-semibold mb-2">Comments</h3>
+<div class="space-y-3 mb-4" id="comments">
+  {% for c in comments %}
+    {% set ca = comment_authors.get(c.author_id) %}
+    <div class="border rounded p-3">
+      <div class="text-sm text-gray-600 mb-1">
+        <strong>{{ ca.nickname or ca.username }}</strong>
+        · {{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}
+      </div>
+      <div class="whitespace-pre-line">{{ c.content }}</div>
+    </div>
+  {% else %}
+    <p class="text-gray-500">No comments yet.</p>
+  {% endfor %}
+</div>
+
+{% if user %}
+<form method="post" action="/posts/{{ post.id }}/comment#comments" class="space-y-2">
+  <textarea name="content" rows="2" class="border p-2 w-full" placeholder="Write a comment..." required></textarea>
+  <button class="bg-black text-white px-4 py-2 rounded">Add Comment</button>
+</form>
+{% else %}
+  <a class="text-blue-600 underline" href="/login?msg=Please+log+in+first">Log in to comment</a>
+{% endif %}
+{% endblock %}

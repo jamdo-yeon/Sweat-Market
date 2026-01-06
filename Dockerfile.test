@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+# ✅ 테스트 DB는 /tmp에 (항상 writable)
+ENV DATABASE_URL=sqlite:////tmp/sweatmarket_test.db
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt && pip install pytest httpx
+
+COPY . .
+
+CMD ["pytest", "-q"]
+ENV DATABASE_URL=sqlite://
+ENV DATABASE_URL=sqlite://
+ENV TESTING=1

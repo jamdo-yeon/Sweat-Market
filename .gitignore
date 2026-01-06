@@ -1,0 +1,33 @@
+cat > .gitignore <<'EOF'
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# DB / backups
+*.db
+*.sqlite
+*.sqlite3
+sweatmarket.backup*
+sweatmarket.zip
+
+# Uploads / generated
+static/avatars/
+static/post_images/
+static/chat_images/
+
+# Docker
+*.log
+EOF

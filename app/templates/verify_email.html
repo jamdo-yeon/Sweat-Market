@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2 class="text-lg font-semibold mb-4">이메일 인증</h2>
+
+  {% if error %}
+    <div class="mb-4 p-3 rounded bg-red-100 text-red-700">{{ error }}</div>
+  {% else %}
+    <p class="mb-2">인증 메일을 {{ email }} 로 보냈습니다. 메일에 포함된 링크를 클릭해 주세요.</p>
+    {% if dev_link %}
+      <div class="p-3 rounded bg-yellow-50 border">
+        <p class="mb-1"><strong>개발 모드:</strong> 실제 메일 대신 아래 링크로 인증하세요.</p>
+        <a class="text-blue-600 underline break-words" href="{{ dev_link }}">{{ dev_link }}</a>
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

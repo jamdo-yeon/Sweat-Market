@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>{{ page_title or "SweatMarket" }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:   '#111111',
+            coal:  '#0a0a0a',
+            ash:   '#f6f6f6',
+            smoke: '#eaeaea',
+          },
+          fontFamily: {
+            ui: ['Inter','ui-sans-serif','system-ui','Apple SD Gothic Neo','Noto Sans','Segoe UI','Roboto'],
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    .wrap { max-width: 1024px; }
+  </style>
+</head>
+
+<body class="min-h-dvh bg-ash font-ui text-ink">
+  <!-- Top Nav -->
+  <header class="sticky top-0 z-40 bg-black text-white">
+    <div class="wrap mx-auto flex items-center justify-between px-4 py-3">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 text-lg font-semibold">
+        <img src="/static/logo.svg" class="h-8 w-8" alt="logo"/>
+        <span class="text-white">SweatMarket</span>
+      </a>
+
+      <!-- Nav -->
+      <nav class="hidden md:flex items-center gap-6 text-sm">
+        <a href="/" class="hover:opacity-70">Home</a>
+        <a href="/offers" class="hover:opacity-70">Offers</a>
+        <a href="/wallet" class="hover:opacity-70">Wallet</a>
+        <!-- Market points to our DEX route -->
+        <a href="/dex" class="hover:opacity-70">Market</a>
+        <a href="/posts" class="hover:opacity-70">Posts</a>
+        <a href="/chat" class="hover:opacity-70">Chat</a>
+        <a href="/profile/edit" class="hover:opacity-70">Profile</a>
+
+        {% if user %}
+          <form action="/logout" method="post">
+            <button class="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300">
+              Logout ({{ user.username }})
+            </button>
+          </form>
+        {% else %}
+          <a href="/login" class="px-4 py-2 text-sm font-medium hover:opacity-70">Login</a>
+          <a href="/signup" class="px-4 py-2 text-sm font-medium text-black bg-white rounded-md hover:bg-neutral-200">
+            Signup
+          </a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="wrap mx-auto px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-neutral-200">
+    <div class="wrap mx-auto px-4 py-6 text-xs text-neutral-500">
+      © SweatMarket — built with FastAPI
+    </div>
+  </footer>
+</body>
+</html>

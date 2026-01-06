@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">My Chats</h2>
+
+{% if rooms|length == 0 %}
+  <p>No chats yet. Find someone in Community/Posts and press “Message”.</p>
+{% else %}
+  <ul class="space-y-2">
+    {% for r in rooms %}
+      <li class="border rounded p-3 flex justify-between items-center">
+        {% set other = others[r.id] %}
+        <div>
+          <div class="font-medium">
+            <a class="underline" href="/chat/{{ r.id }}">
+              {{ other.nickname or other.username }}
+            </a>
+          </div>
+          <div class="text-sm text-gray-500">Room #{{ r.id }}</div>
+        </div>
+        <a class="text-blue-600" href="/chat/{{ r.id }}">Open</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

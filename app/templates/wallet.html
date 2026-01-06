@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-3">Wallet</h2>
+
+{% if demo %}
+<div class="mb-3 p-2 rounded bg-amber-100 text-amber-800 text-sm">
+  Demo mode — showing placeholder balance and transactions. Add <code>?demo=1</code> to force demo.
+</div>
+{% endif %}
+
+<div class="p-4 bg-white border rounded mb-4">
+  <div class="text-sm text-slate-500">Current Balance</div>
+  <div class="text-3xl font-semibold">{{ u.coins }} <span class="text-lg">🪙</span></div>
+</div>
+
+<h3 class="font-medium mb-2">Recent activity</h3>
+<ul class="grid gap-2">
+  {% for t in txs %}
+  <li class="p-3 bg-white border rounded flex justify-between">
+    <span class="text-slate-600">{{ t.created_at }}</span>
+    <span class="font-mono">{{ t.kind }} {{ t.amount }}</span>
+    <span class="text-slate-500">{{ t.note }}</span>
+  </li>
+  {% else %}
+  <li class="text-slate-500">No activity yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

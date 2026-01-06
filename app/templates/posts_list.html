@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Community Posts</h2>
+<a href="/posts/new" class="inline-block bg-purple-600 text-white px-4 py-2 rounded mb-6">New Post</a>
+
+{% if posts|length == 0 %}
+  <p>No posts yet. Be the first!</p>
+{% endif %}
+
+<div class="space-y-6">
+  {% for p in posts %}
+    {% set a = authors.get(p.author_id) %}
+    <div class="border rounded p-4">
+      <div class="mb-2 text-sm text-gray-600">
+        <strong>{{ a.nickname or a.username }}</strong> · {{ p.created_at }}
+      </div>
+      {% if p.image_url %}
+        <img src="{{ p.image_url }}" class="max-h-72 mb-3 rounded"/>
+      {% endif %}
+      <p class="mb-3">{{ p.caption }}</p>
+      <a href="/posts/{{ p.id }}" class="text-blue-600 underline">View details</a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

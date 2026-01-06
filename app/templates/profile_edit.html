@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if saved %}
+  <div class="mb-4 p-3 rounded bg-green-100 text-green-800">
+    Profile saved successfully.
+  </div>
+{% endif %}
+
+{% if error %}
+  <div class="mb-4 p-3 rounded bg-red-100 text-red-700">
+    {{ error }}
+  </div>
+{% endif %}
+
+<h2 class="text-xl font-bold mb-6">Edit Profile</h2>
+
+<!-- Avatar (circle) + preview -->
+<div class="flex items-center gap-4 mb-6">
+  <img id="avatarPreview"
+       src="{{ user.avatar_url or '/static/avatar-placeholder.png' }}"
+       class="w-24 h-24 rounded-full object-cover border" alt="avatar"/>
+  <div>
+    <label class="block mb-1 font-medium">Profile photo</label>
+    <input type="file" name="avatar" form="profileForm" accept="image/*" class="block"/>
+    <p class="text-xs text-gray-500 mt-1">JPG/PNG up to ~2MB</p>
+  </div>
+</div>
+
+<form id="profileForm" method="post" action="/profile/edit" enctype="multipart/form-data" class="space-y-4">
+
+  <!-- Nickname -->
+  <div>
+    <label class="block font-medium mb-1">Nickname</label>
+    <input name="nickname" value="{{ user.nickname or '' }}"
+           minlength="3" maxlength="12" required
+           class="border p-2 w-full" placeholder="3–12 characters"/>
+  </div>
+
+  <!-- Birth date: YYYY / MM / DD -->
+  <div>
+    <label class="block font-medium mb-1">Birth date</label>
+    <div class="flex gap-2">
+      {% set y = (user.birth_date.year if user.birth_date else '') %}
+      {% set m = (('%02d' % user.birth_date.month) if user.birth_date else '') %}
+      {% set d = (('%02d' % user.birth_date.day) if user.birth_date else '') %}
+
+      <input name="birth_year" type="number" value="{{ y }}"
+             placeholder="YYYY" min="1900" max="2100"
+             class="border p-2 w-24" required>
+
+      <input name="birth_month" type="number" value="{{ m }}"
+             placeholder="MM" min="1" max="12"
+             class="border p-2 w-20" required>
+
+      <input name="birth_day" type="number" value="{{ d }}"
+             placeholder="DD" min="1" max="31"
+             class="border p-2 w-20" required>
+    </div>
+  </div>
+
+  <!-- Gender -->
+  <div>
+    <label class="block font-medium mb-1">Gender</label>
+    <select name="gender" class="border p-2 w-full" required>
+      {% set g = user.gender or '' %}
+      <option value="" disabled {{ '' == g and 'selected' or '' }}>Select…</option>
+      <option value="male"  {{ g == 'male' and 'selected' or '' }}>Male</option>
+      <option value="female"  {{ g == 'female' and 'selected' or '' }}>Female</option>
+      <option value="prefer_not_to_answer" {{ g == 'prefer_not_to_answer' and 'selected' or '' }}>Prefer not to answer</option>
+    </select>
+  </div>
+
+  <!-- Preferred sport -->
+  <div>
+    <label class="block font-medium mb-1">Preferred sport</label>
+    <select name="sport" class="border p-2 w-full" required>
+      {% set s = user.sport or '' %}
+      <option value="" disabled {{ '' == s and 'selected' or '' }}>Select…</option>
+      <option value="gym"     {{ s == 'gym' and 'selected' or '' }}>Gym / Fitness</option>
+      <option value="soccer"  {{ s == 'soccer' and 'selected' or '' }}>Soccer</option>
+      <option value="running" {{ s == 'running' and 'selected' or '' }}>Running</option>
+      <option value="others"  {{ s == 'others' and 'selected' or '' }}>Others</option>
+    </select>
+    <p class="text-xs text-gray-500 mt-1">We can add more sports later.</p>
+  </div>
+
+  <!-- Optional fields for team -->
+  <div>
+    <label class="block font-medium mb-1">Time window (optional)</label>
+    <input name="time_window" value="{{ user.time_window or '' }}" class="border p-2 w-full"/>
+  </div>
+  <div>
+    <label class="block font-medium mb-1">Region (optional)</label>
+    <input name="region" value="{{ user.region or '' }}" class="border p-2 w-full"/>
+  </div>
+  <div>
+    <label class="block font-medium mb-1">Goal (optional)</label>
+    <input name="goal" value="{{ user.goal or '' }}" class="border p-2 w-full"/>
+  </div>
+
+  <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded">Save</button>
+</form>
+
+<script>
+  // Avatar preview
+  const input = document.querySelector('input[name="avatar"]');
+  const img = document.getElementById('avatarPreview');
+  if (input && img) {
+    input.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) img.src = URL.createObjectURL(f);
+    });
+  }
+</script>
+
+{% endblock %}

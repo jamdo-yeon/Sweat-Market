@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-3">Coin Exchange (Toy)</h2>
+
+{% if demo %}
+<div class="mb-3 p-2 rounded bg-amber-100 text-amber-800 text-sm">
+  Demo mode — orders are in-memory only. Posting here won’t touch a DB.
+</div>
+{% endif %}
+
+<form method="post" action="/dex/new{% if demo %}?demo=1{% endif %}" class="grid gap-2 max-w-xl mb-6">
+  <div class="grid grid-cols-3 gap-2">
+    <select name="side" class="border p-2 rounded">
+      <option value="buy">Buy</option>
+      <option value="sell">Sell</option>
+    </select>
+    <input name="price" type="number" step="1" placeholder="Price" class="border p-2 rounded" required/>
+    <input name="amount" type="number" step="1" placeholder="Amount" class="border p-2 rounded" required/>
+  </div>
+  <button class="bg-indigo-600 text-white rounded px-3 py-2">Post</button>
+</form>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div>
+    <h3 class="font-medium mb-2">Buy Orders</h3>
+    <ul class="grid gap-2">
+      {% for o in buys %}
+      <li class="p-2 bg-white border rounded flex justify-between"><b>{{ o.price }}</b><span>x {{ o.amount }}</span></li>
+      {% else %}<li class="text-slate-500">none</li>{% endfor %}
+    </ul>
+  </div>
+  <div>
+    <h3 class="font-medium mb-2">Sell Orders</h3>
+    <ul class="grid gap-2">
+      {% for o in sells %}
+      <li class="p-2 bg-white border rounded flex justify-between"><b>{{ o.price }}</b><span>x {{ o.amount }}</span></li>
+      {% else %}<li class="text-slate-500">none</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+
+<canvas id="chart" height="160"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Simple live-looking chart (client-side only)
+const labels = Array.from({length: 32}, (_, i) => i);
+const base = 100 + Math.random() * 4;
+const data = labels.map((_, i) => Math.round(base + Math.sin(i/3)*5 + (Math.random()-0.5)*3));
+new Chart(document.getElementById('chart'), {
+  type: 'line',
+  data: { labels, datasets: [{ label: 'Price', data }] },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

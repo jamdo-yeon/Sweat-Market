@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2 class="text-lg font-semibold mb-4">Sign Up</h2>
+
+  {% if error %}
+    <div class="mb-4 p-3 rounded bg-red-100 text-red-700">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/signup" class="space-y-3">
+    <div>
+      <label class="block">Username</label>
+      <input name="username" class="border p-2 w-full" required minlength="5" maxlength="20" />
+    </div>
+    <div>
+      <label class="block">Email (optional)</label>
+      <input name="email" type="email" class="border p-2 w-full" />
+    </div>
+    <div>
+      <label class="block">Password</label>
+      <input name="password" type="password" required minlength="6" maxlength="128"
+             class="border p-2 w-full"
+             pattern="(?=.*[A-Z])(?=.*\d).{6,}"
+             title="At least 6 chars, include ≥1 uppercase letter and ≥1 digit." />
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Create account</button>
+  </form>
+{% endblock %}
