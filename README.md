@@ -1,59 +1,67 @@
-🏋️ SweatMarket (Hackathon Prototype)
-SweatMarket is a hackathon mashup project combining fitness 🏃 + finance 💰.
-Users can find workout partners, check in together (planned: QR + geolocation), and earn in-app coins that can later be used in a reward market / DEX (prototype).
+# 🏋️ SweatMarket (Hackathon Prototype)
 
-Repo Goal: demonstrate an end-to-end FastAPI web app with auth, social features (DM + posts), and a demo-friendly wallet/DEX module.
+SweatMarket is a hackathon mashup project combining **fitness** 🏃 + **finance** 💰.  
+Users can find workout partners, check in together *(planned: QR + geolocation)*, and earn in-app coins that can later be used in a reward market / DEX *(prototype)*.
 
-✨ Key Features
-🔐 Authentication + Profile (Cookie Sessions)
+**Repo Goal:** demonstrate an end-to-end FastAPI web app with auth, social features (DM + posts), and a demo-friendly wallet/DEX module.
 
-Signup / Login / Logout
-Session-based auth using Starlette SessionMiddleware
+---
 
-Profile setup:
-Nickname, birth date, gender, preferred sport
-time window / region / goal
-Profile photo upload
+## ✨ Key Features
 
-🏠 Home
-Personalized landing page after login
-Quick navigation into profile + chat
+### 🔐 Authentication + Profile (Cookie Sessions)
+- Signup / Login / Logout
+- Session-based auth using Starlette `SessionMiddleware`
+- Profile setup
+  - Nickname, birth date, gender, preferred sport
+  - Time window / region / goal
+  - Profile photo upload
 
-💬 1:1 Chat (WebSockets)
-Direct messages using Starlette WebSocket
-Start a chat from another user’s profile
+### 🏠 Home
+- Personalized landing page after login
+- Quick navigation into profile + chat
 
-Send:
-Text messages (real-time)
-Images (upload + broadcast)
+### 💬 1:1 Chat (WebSockets)
+- Direct messages using Starlette WebSockets
+- Start a chat from another user’s profile
+- Send
+  - Text messages (real-time)
+  - Images (upload + broadcast)
 
-📸 Community Posts
-Create posts with caption + optional image upload
-Posts list + “New Post” flow
+### 📸 Community Posts
+- Create posts with caption + optional image upload
+- Posts list + “New Post” flow
 
-💰 Wallet + Market (DEX) — Prototype
-Wallet page shows transactions / coins
-DEX page supports:
-Demo mode (seeded mock orders)
-Real mode (orders stored in DB if available)
+### 💰 Wallet + Market (DEX) — Prototype
+- Wallet page shows transactions / coin balance
+- DEX page supports
+  - Demo mode (seeded mock orders)
+  - Real mode (orders stored in DB if available)
 
-🧰 Tech Stack
-Backend: FastAPI (Python 3.12)
-Database: SQLite + SQLModel
-Frontend: Jinja2 Templates + Tailwind CSS
-Auth: Cookie-based sessions + Argon2 password hashing
-Real-time: WebSocket (Starlette)
-Testing: Pytest + FastAPI TestClient (+ httpx)
-CI-ready: Docker test image + GitHub Actions workflow (optional)
+---
 
-📂 Project Structure
+## 🧰 Tech Stack
+- **Backend:** FastAPI (Python 3.12)
+- **Database:** SQLite + SQLModel
+- **Frontend:** Jinja2 Templates + Tailwind CSS
+- **Auth:** Cookie-based sessions + Argon2 password hashing
+- **Real-time:** WebSocket (Starlette)
+- **Testing:** Pytest + FastAPI TestClient (+ httpx)
+- **CI-ready:** Docker test image + GitHub Actions workflow (optional)
+
+---
+
+## 📂 Project Structure
+```text
 app/
   main.py           # FastAPI app entry (home, posts, wallet, dex)
   auth.py           # signup/login/logout + profile edit flows
   chat.py           # DM routes + websocket handler
+  posts.py          # posts list/create routes
   models.py         # SQLModel tables (User, Post, ChatRoom, etc.)
   db.py             # engine + init_db + session dependency
   templates/        # Jinja2 HTML pages
+
 static/
   avatars/          # uploaded profile photos
   post_images/      # uploaded post images
@@ -68,43 +76,60 @@ tests/
 Dockerfile.test
 pytest.ini
 requirements.txt
-
 🚀 Run Locally
 1) Install + run
+bash
+Copy code
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
 
+uvicorn app.main:app --reload
 Open:
+
 http://127.0.0.1:8000/
 
 2) DB location
-By default:
+Default:
+
+bash
+Copy code
 DATABASE_URL=sqlite:////tmp/sweatmarket.db
+Override:
 
-You can override:
+bash
+Copy code
 export DATABASE_URL="sqlite:////tmp/sweatmarket_local.db"
-
 ✅ Run Tests (Docker)
 Build:
+
+bash
+Copy code
 docker build -f Dockerfile.test -t sweatmarket-test .
-
 Run:
-docker run --rm sweatmarket-test
 
+bash
+Copy code
+docker run --rm sweatmarket-test
 🧪 What the Tests Cover
--Signup/login flow creates a session cookie
--Protected route redirects when not authenticated
--Posting with caption (+ optional image upload)
--WebSocket DM basic connection & messaging
+Signup/login flow creates a session cookie
+
+Protected route redirects when not authenticated
+
+Posting with caption (+ optional image upload)
+
+WebSocket DM basic connection & messaging
 
 🗺️ Roadmap (Planned)
--Workout offers + join flow
--QR + geolocation check-in verification
--Coin earning rules + reward market
--Harden auth + permissions for posts/comments
--Deployment polish (Render/Heroku)
+Workout offers + join flow
+
+QR + geolocation check-in verification
+
+Coin earning rules + reward market
+
+Harden auth + permissions for posts/comments
+
+Deployment polish (Render/Heroku)
 
 🏁 Hackathon Context
 Built as a 12-hour hackathon prototype (CSSS Fall Hacks 2024).
