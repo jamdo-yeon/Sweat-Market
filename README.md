@@ -76,6 +76,7 @@ tests/
 Dockerfile.test
 pytest.ini
 requirements.txt
+'''
 
 🚀 Run Locally
 1) Install + run
