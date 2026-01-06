@@ -78,7 +78,7 @@ pytest.ini
 requirements.txt
 ```
 
-🚀 Run Locally
+### 🚀 Run Locally
 1) Install + run
 bash
 Copy code
@@ -102,7 +102,7 @@ Override:
 bash
 Copy code
 export DATABASE_URL="sqlite:////tmp/sweatmarket_local.db"
-✅ Run Tests (Docker)
+### ✅ Run Tests (Docker)
 Build:
 
 bash
@@ -113,7 +113,7 @@ Run:
 bash
 Copy code
 docker run --rm sweatmarket-test
-🧪 What the Tests Cover
+### 🧪 What the Tests Cover
 Signup/login flow creates a session cookie
 
 Protected route redirects when not authenticated
@@ -122,7 +122,7 @@ Posting with caption (+ optional image upload)
 
 WebSocket DM basic connection & messaging
 
-🗺️ Roadmap (Planned)
+### 🗺️ Roadmap (Planned)
 Workout offers + join flow
 
 QR + geolocation check-in verification
@@ -133,6 +133,6 @@ Harden auth + permissions for posts/comments
 
 Deployment polish (Render/Heroku)
 
-🏁 Hackathon Context
+### 🏁 Hackathon Context
 Built as a 12-hour hackathon prototype (CSSS Fall Hacks 2024).
 Focus was on demonstrating a realistic product flow + working backend features quickly.
