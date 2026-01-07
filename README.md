@@ -1,4 +1,4 @@
-# 🏋️ SweatMarket (Hackathon Prototype)
+# 🏋️ SweatMarket (Hackathon Prototype) [![CI](https://github.com/jamdo-yeon/Sweat-Market/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jamdo-yeon/Sweat-Market/actions/workflows/ci.yml)
 
 SweatMarket is a hackathon mashup project combining **fitness** 🏃 + **finance** 💰.  
 Users can find workout partners, check in together *(planned: QR + geolocation)*, and earn in-app coins that can later be used in a reward market / DEX *(prototype)*.
