@@ -92,16 +92,21 @@ Open:
 http://127.0.0.1:8000/
 
 2) DB location
-Default:
+Default (all OS):
 
 bash
 Copy code
-DATABASE_URL=sqlite:////tmp/sweatmarket.db
-Override:
+DATABASE_URL=sqlite:///./sweatmarket.db
+Override (macOS/Linux):
 
 bash
 Copy code
-export DATABASE_URL="sqlite:////tmp/sweatmarket_local.db"
+export DATABASE_URL="sqlite:///./sweatmarket_local.db"
+Override (Windows PowerShell):
+
+bash
+Copy code
+$env:DATABASE_URL="sqlite:///C:/path/to/sweatmarket_local.db"
 ### ✅ Run Tests (Docker)
 Build:
 
@@ -134,5 +139,5 @@ Harden auth + permissions for posts/comments
 Deployment polish (Render/Heroku)
 
 ### 🏁 Hackathon Context
-Built as a 12-hour hackathon prototype (CSSS Fall Hacks 2024).
+Built as a 12-hour hackathon prototype (CSSS Fall Hacks 2025).
 Focus was on demonstrating a realistic product flow + working backend features quickly.

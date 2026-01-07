@@ -3,7 +3,7 @@ import os
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/sweatmarket.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sweatmarket.db")
 TESTING = os.getenv("TESTING") == "1"
 
 if TESTING or DATABASE_URL == "sqlite://" or ":memory:" in DATABASE_URL:
