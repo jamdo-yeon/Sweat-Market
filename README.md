@@ -80,13 +80,13 @@ requirements.txt
 
 ### 🚀 Run Locally
 1) Install + run
-bash
-Copy code
+```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 uvicorn app.main:app --reload
+```
 Open:
 
 http://127.0.0.1:8000/
@@ -94,30 +94,30 @@ http://127.0.0.1:8000/
 2) DB location
 Default (all OS):
 
-bash
-Copy code
+```bash
 DATABASE_URL=sqlite:///./sweatmarket.db
+```
 Override (macOS/Linux):
 
-bash
-Copy code
+```bash
 export DATABASE_URL="sqlite:///./sweatmarket_local.db"
+```
 Override (Windows PowerShell):
 
-bash
-Copy code
+```bash
 $env:DATABASE_URL="sqlite:///C:/path/to/sweatmarket_local.db"
+```
 ### ✅ Run Tests (Docker)
 Build:
 
-bash
-Copy code
+```bash
 docker build -f Dockerfile.test -t sweatmarket-test .
+```
 Run:
 
-bash
-Copy code
+```bash
 docker run --rm sweatmarket-test
+```
 ### 🧪 What the Tests Cover
 Signup/login flow creates a session cookie
 
