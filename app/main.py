@@ -28,6 +28,7 @@ from .db import init_db, engine
 from .auth import router as auth_router
 from .posts import router as posts_router
 from .chat import router as chat_router
+from .uploads import UPLOAD_ROOT
 
 from .models import User, Tx, Order
 
@@ -73,6 +74,9 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.getenv("VERCEL"):
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
 
 # ---- Routers
 app.include_router(auth_router)

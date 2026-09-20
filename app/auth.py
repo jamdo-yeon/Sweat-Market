@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .db import get_session
 from .models import User
+from .uploads import UPLOAD_URL_PREFIX, upload_directory
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -276,12 +277,12 @@ def profile_update(
         )
 
     if avatar and avatar.filename:
-        os.makedirs("static/avatars", exist_ok=True)
         ext = os.path.splitext(avatar.filename)[1].lower() or ".jpg"
-        path = f"static/avatars/{user.id}{ext}"
-        with open(path, "wb") as f:
+        avatar_dir = upload_directory("avatars")
+        path = avatar_dir / f"{user.id}{ext}"
+        with path.open("wb") as f:
             f.write(avatar.file.read())
-        user.avatar_url = "/" + path
+        user.avatar_url = f"{UPLOAD_URL_PREFIX}/avatars/{user.id}{ext}"
 
     user.nickname = nick
     user.birth_date = bdate

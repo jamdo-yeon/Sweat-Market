@@ -13,12 +13,12 @@ from sqlmodel import Session, select
 from .db import engine
 from .models import User, Post, Comment
 from .auth import current_user  # chat.py에서도 쓰는 거라 너 프로젝트에 이미 있을 확률 높음
+from .uploads import UPLOAD_URL_PREFIX, upload_directory
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-POST_IMG_DIR = Path("static/post_images")
-POST_IMG_DIR.mkdir(parents=True, exist_ok=True)
+POST_IMG_DIR = upload_directory("post_images")
 
 
 def get_session():
@@ -36,7 +36,7 @@ def _save_upload(image: UploadFile) -> str:
     dest = POST_IMG_DIR / fname
     with dest.open("wb") as f:
         f.write(image.file.read())
-    return f"/static/post_images/{fname}"
+    return f"{UPLOAD_URL_PREFIX}/post_images/{fname}"
 
 
 @router.get("/posts", response_class=HTMLResponse)

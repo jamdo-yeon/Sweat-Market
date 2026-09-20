@@ -8,6 +8,7 @@ import os, json, time
 from .db import get_session
 from .models import ChatRoom, Message, User
 from .auth import current_user
+from .uploads import UPLOAD_URL_PREFIX, upload_directory
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -168,15 +169,15 @@ async def upload_image(
     if not room or me.id not in (room.user1_id, room.user2_id):
         return RedirectResponse("/chat", status_code=303)
 
-    os.makedirs("static/chat_images", exist_ok=True)
     ext = os.path.splitext(image.filename or "")[1].lower() or ".jpg"
-    path = f"static/chat_images/{room_id}_{me.id}_{int(time.time())}{ext}"
+    filename = f"{room_id}_{me.id}_{int(time.time())}{ext}"
+    path = upload_directory("chat_images") / filename
 
     data = await image.read()
-    with open(path, "wb") as f:
+    with path.open("wb") as f:
         f.write(data)
 
-    url = "/" + path
+    url = f"{UPLOAD_URL_PREFIX}/chat_images/{filename}"
 
     msg = Message(room_id=room_id, sender_id=me.id, image_url=url, content="")
     session.add(msg)
