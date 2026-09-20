@@ -25,6 +25,14 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style>
     .wrap { max-width: 1024px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 1rem; background: white; box-shadow: 0 10px 30px rgba(0,0,0,.04); }
+    .muted { color: #666; }
+    .link { color: #6d28d9; text-decoration: underline; text-underline-offset: 3px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: .65rem; padding: .65rem 1rem; font-weight: 600; }
+    .btn-primary { background: #111; color: white; }
+    .btn-primary:hover { background: #333; }
+    .btn-ghost { border: 1px solid #d4d4d4; background: white; color: #111; }
+    .btn-ghost:hover { background: #f5f5f5; }
   </style>
 </head>
 
@@ -63,6 +71,17 @@
         {% endif %}
       </nav>
     </div>
+    <nav class="md:hidden overflow-x-auto border-t border-neutral-800 px-4 py-2 text-sm">
+      <div class="mx-auto flex w-max items-center gap-5">
+        <a href="/" class="hover:opacity-70">Home</a>
+        <a href="/offers" class="hover:opacity-70">Offers</a>
+        <a href="/wallet" class="hover:opacity-70">Wallet</a>
+        <a href="/dex" class="hover:opacity-70">Market</a>
+        <a href="/posts" class="hover:opacity-70">Posts</a>
+        <a href="/chat" class="hover:opacity-70">Chat</a>
+        <a href="/profile/edit" class="hover:opacity-70">Profile</a>
+      </div>
+    </nav>
   </header>
 
   <!-- Page -->

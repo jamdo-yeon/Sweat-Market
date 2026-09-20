@@ -1,0 +1,11 @@
+.git/
+.github/
+.venv/
+venv/
+tests/
+Dockerfile.test
+LUMOTIVE_PROJECT_DESCRIPTIONS.md
+*.db
+*.bak
+__pycache__/
+*.pyc

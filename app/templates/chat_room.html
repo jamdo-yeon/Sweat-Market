@@ -1,52 +1,82 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="flex flex-col md:flex-row gap-6">
-  <div class="md:w-2/3">
-    <img src="{{ post.image_url }}" class="w-full rounded border object-cover"/>
-    {% if post.caption %}
-      <p class="mt-2 text-gray-700">{{ post.caption }}</p>
-    {% endif %}
-  </div>
-
-  <div class="md:w-1/3">
-    <!-- Author card + Message 버튼 -->
-    <div class="border rounded p-3 mb-4">
-      <div class="flex items-center gap-3">
-        <img src="{{ author.avatar_url or '/static/avatar-placeholder.png' }}" class="w-12 h-12 rounded-full object-cover border">
-        <div>
-          <div class="font-semibold">{{ author.nickname or author.username }}</div>
-          <div class="text-sm text-gray-500">{{ author.sport or '—' }}</div>
-        </div>
-      </div>
-      {% if user and user.id != author.id %}
-      <form method="post" action="/chat/start" class="mt-3">
-        <input type="hidden" name="user_id" value="{{ author.id }}"/>
-        <button class="bg-purple-600 text-white px-3 py-1 rounded">Message</button>
-      </form>
-      {% endif %}
+<section class="card mx-auto max-w-3xl overflow-hidden">
+  <header class="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[.16em] text-neutral-500">Direct message</p>
+      <h1 class="text-xl font-bold">{{ other.nickname or other.username }}</h1>
     </div>
+    <a href="/chat" class="btn btn-ghost text-sm">All chats</a>
+  </header>
 
-    <!-- Comments -->
-    <h3 class="font-semibold mb-2">Comments</h3>
-    <div class="space-y-2 mb-3">
-      {% for c in comments %}
-        <div class="border rounded p-2">
-          <div class="text-sm text-gray-500">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          <div>{{ c.content }}</div>
-        </div>
-      {% else %}
-        <p class="text-gray-500">No comments yet.</p>
-      {% endfor %}
-    </div>
-
-    {% if user %}
-      <form method="post" action="/posts/{{ post.id }}/comment" class="flex gap-2">
-        <input name="content" class="border p-2 flex-1" placeholder="Add a comment…" required>
-        <button class="bg-gray-800 text-white px-3 rounded">Send</button>
-      </form>
+  <div id="messages" class="flex min-h-80 max-h-[55vh] flex-col gap-3 overflow-y-auto bg-neutral-50 p-5" aria-live="polite">
+    {% for message in messages %}
+      <article class="max-w-[82%] rounded-xl px-4 py-3 {{ 'ml-auto bg-black text-white' if message.sender_id == user.id else 'mr-auto border border-neutral-200 bg-white' }}">
+        {% if message.image_url %}<img src="{{ message.image_url }}" class="max-h-64 rounded-lg object-cover" alt="Shared image">{% endif %}
+        {% if message.content %}<p class="whitespace-pre-wrap">{{ message.content }}</p>{% endif %}
+        <time class="mt-1 block text-[11px] opacity-60">{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</time>
+      </article>
     {% else %}
-      <a href="/login" class="text-blue-600 underline">Log in</a> to comment.
-    {% endif %}
+      <p id="empty-state" class="m-auto text-center text-sm text-neutral-500">No messages yet. Say hello to start the conversation.</p>
+    {% endfor %}
   </div>
-</div>
+
+  <div class="border-t border-neutral-200 p-4">
+    <form id="message-form" class="flex gap-2">
+      <label class="sr-only" for="message-input">Message</label>
+      <input id="message-input" class="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2" maxlength="1000" placeholder="Write a message..." autocomplete="off" required>
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+    <form method="post" action="/chat/{{ room.id }}/image" enctype="multipart/form-data" class="mt-3 flex items-center gap-2 text-sm">
+      <input name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="min-w-0 flex-1" required>
+      <button class="btn btn-ghost py-2" type="submit">Share image</button>
+    </form>
+    <p id="connection-status" class="mt-2 text-xs text-neutral-500">Connecting…</p>
+  </div>
+</section>
+
+<script>
+(() => {
+  const messages = document.getElementById('messages');
+  const form = document.getElementById('message-form');
+  const input = document.getElementById('message-input');
+  const status = document.getElementById('connection-status');
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${protocol}//${window.location.host}/ws/chat/{{ room.id }}`);
+
+  const addMessage = (payload) => {
+    document.getElementById('empty-state')?.remove();
+    const mine = Number(payload.sender_id) === Number({{ user.id }});
+    const article = document.createElement('article');
+    article.className = `max-w-[82%] rounded-xl px-4 py-3 ${mine ? 'ml-auto bg-black text-white' : 'mr-auto border border-neutral-200 bg-white'}`;
+    if (payload.type === 'image') {
+      const img = document.createElement('img');
+      img.src = payload.image_url;
+      img.alt = 'Shared image';
+      img.className = 'max-h-64 rounded-lg object-cover';
+      article.appendChild(img);
+    } else {
+      const text = document.createElement('p');
+      text.className = 'whitespace-pre-wrap';
+      text.textContent = payload.content;
+      article.appendChild(text);
+    }
+    messages.appendChild(article);
+    messages.scrollTop = messages.scrollHeight;
+  };
+
+  socket.addEventListener('open', () => { status.textContent = 'Connected'; });
+  socket.addEventListener('close', () => { status.textContent = 'Disconnected — refresh to reconnect'; });
+  socket.addEventListener('error', () => { status.textContent = 'Connection error'; });
+  socket.addEventListener('message', (event) => addMessage(JSON.parse(event.data)));
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const content = input.value.trim();
+    if (!content || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ content }));
+    input.value = '';
+  });
+  messages.scrollTop = messages.scrollHeight;
+})();
+</script>
 {% endblock %}

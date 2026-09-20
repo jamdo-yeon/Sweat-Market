@@ -7,8 +7,6 @@ import random
 import logging
 from contextlib import asynccontextmanager
 from typing import Dict, List
-from uuid import uuid4
-from pathlib import Path
 
 # Optional .env loading (safe if python-dotenv is missing)
 try:
@@ -18,7 +16,7 @@ try:
 except Exception:
     pass
 
-from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -28,20 +26,13 @@ from sqlmodel import Session as SQLSession, select
 # ---- Project modules
 from .db import init_db, engine
 from .auth import router as auth_router
+from .posts import router as posts_router
+from .chat import router as chat_router
 
-try:
-    from .chat import router as chat_router  # DM(WebSocket)
-except Exception:
-    chat_router = None  # optional
-
-from .models import User, Tx, Order, Post
+from .models import User, Tx, Order
 
 # ---- Templates / Static
 templates = Jinja2Templates(directory="app/templates")
-
-# Post image folder (served via /static)
-POST_IMG_DIR = Path("static/post_images")
-POST_IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- DEX demo storage
 _MOCK_ORDERS: Dict[str, List[Dict[str, int]]] = {"buy": [], "sell": []}
@@ -77,14 +68,16 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SECRET_KEY", "dev-secret"),
     session_cookie="sweatmarket_session",
+    https_only=os.getenv("VERCEL_ENV") == "production",
+    same_site="lax",
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ---- Routers
 app.include_router(auth_router)
-if chat_router:
-    app.include_router(chat_router)  # /chat, /ws/chat/*
+app.include_router(posts_router)
+app.include_router(chat_router)
 
 
 # =========================================================
@@ -105,59 +98,13 @@ def health():
     return {"ok": True}
 
 
-# =========================================================
-#                       Posts (Part A)
-# =========================================================
-@app.get("/posts", response_class=HTMLResponse)
-def posts_list(request: Request):
+@app.get("/offers", response_class=HTMLResponse)
+def offers_page(request: Request):
+    """Keep navigation complete while workout matching remains on the roadmap."""
     uid = request.session.get("uid")
     with SQLSession(engine) as s:
-        user_for_nav = s.get(User, uid) if uid else None
-        posts = s.exec(select(Post).order_by(Post.created_at.desc())).all()
-        authors = {p.author_id: s.get(User, p.author_id) for p in posts}
-
-    return templates.TemplateResponse(
-        request,
-        "posts_list.html",
-        {"user": user_for_nav, "posts": posts, "authors": authors},
-    )
-
-
-@app.get("/posts/new", response_class=HTMLResponse)
-def posts_new_page(request: Request):
-    uid = request.session.get("uid")
-    if not uid:
-        return RedirectResponse("/login", status_code=303)
-
-    with SQLSession(engine) as s:
-        user = s.get(User, uid)
-
-    return templates.TemplateResponse(request, "posts_new.html", {"user": user})
-
-
-@app.post("/posts/new")
-async def posts_new(
-    request: Request,
-    caption: str = Form(...),
-    image: UploadFile | None = File(None),
-):
-    uid = request.session.get("uid")
-    if not uid:
-        return RedirectResponse("/login", status_code=303)
-
-    image_url = None
-    if image and image.filename:
-        suffix = Path(image.filename).suffix or ".png"
-        fname = f"{uuid4().hex}{suffix}"
-        dest = POST_IMG_DIR / fname
-        dest.write_bytes(await image.read())
-        image_url = f"/static/post_images/{fname}"
-
-    with SQLSession(engine) as s:
-        s.add(Post(author_id=uid, caption=caption, image_url=image_url))
-        s.commit()
-
-    return RedirectResponse("/posts", status_code=303)
+        user = s.get(User, uid) if uid else None
+    return templates.TemplateResponse(request, "offers.html", {"user": user})
 
 
 # =========================================================

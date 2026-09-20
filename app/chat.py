@@ -116,13 +116,23 @@ def chat_room(room_id: int, request: Request, session: Session = Depends(get_ses
 
 @router.websocket("/ws/chat/{room_id}")
 async def ws_chat(room_id: int, websocket: WebSocket, session: Session = Depends(get_session)):
+    uid = websocket.session.get("uid")
+    if not uid:
+        await websocket.close(code=4401)
+        return
+
+    room = session.get(ChatRoom, room_id)
+    if not room or uid not in (room.user1_id, room.user2_id):
+        await websocket.close(code=4403)
+        return
+
     await manager.connect(room_id, websocket)
     try:
         while True:
             text = await websocket.receive_text()
             data = json.loads(text)
             content = (data.get("content") or "").strip()
-            sender_id = int(data["sender_id"])
+            sender_id = int(uid)
 
             msg = Message(room_id=room_id, sender_id=sender_id, content=content)
             session.add(msg)
@@ -153,6 +163,10 @@ async def upload_image(
     me = current_user(request, session)
     if not me:
         return RedirectResponse("/login", status_code=303)
+
+    room = session.get(ChatRoom, room_id)
+    if not room or me.id not in (room.user1_id, room.user2_id):
+        return RedirectResponse("/chat", status_code=303)
 
     os.makedirs("static/chat_images", exist_ok=True)
     ext = os.path.splitext(image.filename or "")[1].lower() or ".jpg"

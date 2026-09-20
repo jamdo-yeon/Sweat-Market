@@ -78,6 +78,22 @@ pytest.ini
 requirements.txt
 ```
 
+## Live demo deployment
+
+The app is structured so Vercel can detect `app/main.py` as a FastAPI entrypoint. Python is pinned in `.python-version`.
+
+For a durable public demo, configure these Vercel environment variables before deploying:
+
+```text
+SECRET_KEY=<a long random value>
+DATABASE_URL=<a hosted PostgreSQL connection string>
+SWEATMARKET_DEMO=1
+```
+
+`SWEATMARKET_DEMO=1` keeps Wallet and Market useful without a completed coin-earning pipeline. Without a hosted `DATABASE_URL`, Vercel falls back to SQLite under `/tmp`; that is suitable only for a short preview because serverless local data is not durable. Uploaded images also use the local filesystem today, so persistent production media requires object storage.
+
+Deploy by importing this GitHub repository in Vercel. No custom build command or output directory is required.
+
 ### 🚀 Run Locally
 1) Install + run
 ```bash

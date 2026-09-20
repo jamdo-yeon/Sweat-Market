@@ -5,6 +5,9 @@ __pycache__
 .git
 *.db
 .DS_Store
-
-cat > .dockerignore << 'EOF'
-EOF
+.env
+.gitignore
+.github
+LUMOTIVE_PROJECT_DESCRIPTIONS.md
+README.md
+tests/__pycache__

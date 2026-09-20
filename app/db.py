@@ -3,7 +3,8 @@ import os
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sweatmarket.db")
+default_sqlite_path = "sqlite:////tmp/sweatmarket.db" if os.getenv("VERCEL") else "sqlite:///./sweatmarket.db"
+DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite_path)
 TESTING = os.getenv("TESTING") == "1"
 
 if TESTING or DATABASE_URL == "sqlite://" or ":memory:" in DATABASE_URL:
@@ -12,11 +13,13 @@ if TESTING or DATABASE_URL == "sqlite://" or ":memory:" in DATABASE_URL:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,   # <-- in-memory DB를 테스트 동안 유지
     )
-else:
+elif DATABASE_URL.startswith("sqlite:"):
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False},
     )
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
