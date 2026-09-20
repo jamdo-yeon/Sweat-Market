@@ -32,3 +32,5 @@ static/chat_images/
 
 # Docker
 *.log
+.vercel
+.env*
