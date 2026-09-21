@@ -29,8 +29,8 @@ from .auth import router as auth_router
 from .posts import router as posts_router
 from .chat import router as chat_router
 from .uploads import UPLOAD_ROOT
-
 from .models import User, Tx, Order
+from .offers import router as offers_router
 
 # ---- Templates / Static
 templates = Jinja2Templates(directory="app/templates")
@@ -82,7 +82,7 @@ if os.getenv("VERCEL"):
 app.include_router(auth_router)
 app.include_router(posts_router)
 app.include_router(chat_router)
-
+app.include_router(offers_router)
 
 # =========================================================
 #                       Home (Part A)
@@ -101,14 +101,6 @@ def index(request: Request):
 def health():
     return {"ok": True}
 
-
-@app.get("/offers", response_class=HTMLResponse)
-def offers_page(request: Request):
-    """Keep navigation complete while workout matching remains on the roadmap."""
-    uid = request.session.get("uid")
-    with SQLSession(engine) as s:
-        user = s.get(User, uid) if uid else None
-    return templates.TemplateResponse(request, "offers.html", {"user": user})
 
 
 # =========================================================
