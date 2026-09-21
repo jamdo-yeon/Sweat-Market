@@ -1,25 +1,192 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <section class="card overflow-hidden">
   <div class="bg-black px-6 py-8 text-white sm:px-8">
-    <p class="mb-2 text-xs font-semibold uppercase tracking-[.2em] text-neutral-400">Workout matching</p>
+    <p class="mb-2 text-xs font-semibold uppercase tracking-[.2em] text-neutral-400">
+      Workout matching
+    </p>
     <h1 class="text-3xl font-bold">Find a training partner</h1>
-    <p class="mt-3 max-w-2xl text-neutral-300">Offer creation and joining are the next product milestone. The current portfolio demo focuses on profiles, community posts, chat, wallet, and the market prototype.</p>
+    <p class="mt-3 max-w-2xl text-neutral-300">
+      Create workout sessions, join nearby partners, and build toward verified check-ins and rewards.
+    </p>
   </div>
-  <div class="grid gap-4 p-6 sm:grid-cols-2 sm:p-8">
+
+  <div class="grid gap-6 p-6 lg:grid-cols-[1fr_1.4fr] sm:p-8">
+
+    <!-- Create workout -->
     <div class="rounded-xl border border-neutral-200 p-5">
-      <p class="text-sm text-neutral-500">Coming next</p>
-      <h2 class="mt-1 text-lg font-semibold">Create workout offers</h2>
-      <p class="mt-2 text-sm text-neutral-600">Choose a sport, time, and region to invite nearby partners.</p>
+      <h2 class="text-lg font-semibold">Create workout</h2>
+
+      {% if user %}
+      <form method="post" action="/offers" class="mt-4 space-y-4">
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Sport</label>
+          <select name="sport" required class="input w-full">
+            <option value="gym">Gym</option>
+            <option value="running">Running</option>
+            <option value="soccer">Soccer</option>
+            <option value="others">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Location</label>
+          <input
+            type="text"
+            name="location"
+            placeholder="SFU Burnaby"
+            required
+            class="input w-full"
+          >
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Date & time</label>
+          <input
+            type="datetime-local"
+            name="scheduled_at"
+            required
+            class="input w-full"
+          >
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Maximum participants</label>
+          <input
+            type="number"
+            name="max_participants"
+            min="2"
+            max="20"
+            value="2"
+            required
+            class="input w-full"
+          >
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium">Description</label>
+          <textarea
+            name="description"
+            rows="3"
+            placeholder="What kind of workout are you planning?"
+            class="input w-full"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Create workout
+        </button>
+      </form>
+
+      {% else %}
+      <p class="mt-3 text-sm text-neutral-600">
+        Log in to create a workout session.
+      </p>
+      <a href="/login" class="btn btn-primary mt-4">
+        Log in
+      </a>
+      {% endif %}
     </div>
-    <div class="rounded-xl border border-neutral-200 p-5">
-      <p class="text-sm text-neutral-500">Available now</p>
-      <h2 class="mt-1 text-lg font-semibold">Explore the working prototype</h2>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <a class="btn btn-primary" href="/posts">Community posts</a>
-        <a class="btn btn-ghost" href="/wallet?demo=1">Demo wallet</a>
+
+    <!-- Available workouts -->
+    <div>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Available workouts</h2>
+        <span class="text-sm text-neutral-500">
+          {{ offers|length }} session{% if offers|length != 1 %}s{% endif %}
+        </span>
+      </div>
+
+      <div class="space-y-4">
+        {% for offer in offers %}
+        <div class="rounded-xl border border-neutral-200 p-5">
+
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-semibold capitalize">
+                {{ offer.sport }}
+              </h3>
+
+              <p class="mt-1 text-sm text-neutral-600">
+                {{ offer.location }}
+              </p>
+            </div>
+
+            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium">
+              {{ participant_counts[offer.id] }}/{{ offer.max_participants }}
+            </span>
+          </div>
+
+          <div class="mt-4 space-y-1 text-sm text-neutral-600">
+            <p>
+              <strong>When:</strong>
+              {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }}
+            </p>
+
+            <p>
+              <strong>Created by:</strong>
+              {% set creator = creators.get(offer.creator_id) %}
+              {% if creator %}
+                {{ creator.nickname or creator.username }}
+              {% else %}
+                Unknown user
+              {% endif %}
+            </p>
+          </div>
+
+          {% if offer.description %}
+          <p class="mt-3 text-sm text-neutral-700">
+            {{ offer.description }}
+          </p>
+          {% endif %}
+
+          <div class="mt-4">
+            {% if user %}
+
+              {% if offer.creator_id == user.id %}
+                <span class="text-sm font-medium text-neutral-500">
+                  Your workout
+                </span>
+              {% elif offer.id in joined_offer_ids %}
+                <form method="post" action="/offers/{{ offer.id }}/leave">
+                  <button type="submit" class="btn btn-ghost">
+                    Leave workout
+                  </button>
+                </form>
+
+              {% elif participant_counts[offer.id] >= offer.max_participants %}
+                <span class="text-sm font-medium text-neutral-500">
+                  Full
+                </span>
+
+              {% else %}
+                <form method="post" action="/offers/{{ offer.id }}/join">
+                  <button type="submit" class="btn btn-primary">
+                    Join workout
+                  </button>
+                </form>
+              {% endif %}
+
+            {% else %}
+              <a href="/login" class="text-sm font-medium underline">
+                Log in to join
+              </a>
+            {% endif %}
+          </div>
+
+        {% else %}
+        <div class="rounded-xl border border-dashed border-neutral-300 p-8 text-center">
+          <p class="font-medium">No workouts yet</p>
+          <p class="mt-1 text-sm text-neutral-500">
+            Create the first workout session.
+          </p>
+        </div>
+        {% endfor %}
       </div>
     </div>
+
   </div>
 </section>
 {% endblock %}

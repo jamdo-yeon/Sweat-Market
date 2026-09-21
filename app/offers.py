@@ -95,3 +95,80 @@ def create_offer(
     session.commit()
 
     return RedirectResponse("/offers", status_code=303)
+
+@router.post("/offers/{offer_id}/join")
+def join_offer(
+    offer_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    user = current_user(request, session)
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    offer = session.get(WorkoutOffer, offer_id)
+    if not offer:
+        return RedirectResponse("/offers", status_code=303)
+
+    existing = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id,
+            WorkoutParticipant.user_id == user.id,
+        )
+    ).first()
+
+    if existing:
+        return RedirectResponse("/offers", status_code=303)
+
+    participants = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id
+        )
+    ).all()
+
+    if len(participants) >= offer.max_participants:
+        return RedirectResponse("/offers", status_code=303)
+
+    session.add(
+        WorkoutParticipant(
+            offer_id=offer_id,
+            user_id=user.id,
+        )
+    )
+    session.commit()
+
+    return RedirectResponse("/offers", status_code=303)
+
+
+@router.post("/offers/{offer_id}/leave")
+def leave_offer(
+    offer_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    user = current_user(request, session)
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    offer = session.get(WorkoutOffer, offer_id)
+    if not offer:
+        return RedirectResponse("/offers", status_code=303)
+
+    # Creator stays in their own workout
+    if offer.creator_id == user.id:
+        return RedirectResponse("/offers", status_code=303)
+
+    participant = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id,
+            WorkoutParticipant.user_id == user.id,
+        )
+    ).first()
+
+    if participant:
+        session.delete(participant)
+        session.commit()
+
+    return RedirectResponse("/offers", status_code=303)
