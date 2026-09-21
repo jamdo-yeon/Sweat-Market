@@ -94,3 +94,33 @@ class Order(SQLModel, table=True):
     price: int
     amount: int
     created_at: datetime = Field(default_factory=utcnow)
+
+class WorkoutOffer(SQLModel, table=True):
+    __tablename__ = "workout_offers"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    creator_id: int = Field(foreign_key="users.id", index=True)
+
+    sport: str
+    location: str
+    scheduled_at: datetime
+    description: Optional[str] = None
+    max_participants: int = 2
+
+    created_at: datetime = Field(default_factory=utcnow)
+
+class WorkoutParticipant(SQLModel, table=True):
+    __tablename__ = "workout_participants"
+    __table_args__ = (
+        UniqueConstraint(
+            "offer_id",
+            "user_id",
+            name="uq_workout_participant",
+        ),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    offer_id: int = Field(foreign_key="workout_offers.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+
+    joined_at: datetime = Field(default_factory=utcnow)
