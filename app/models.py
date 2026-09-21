@@ -103,6 +103,8 @@ class WorkoutOffer(SQLModel, table=True):
 
     sport: str
     location: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     scheduled_at: datetime
     description: Optional[str] = None
     max_participants: int = 2
