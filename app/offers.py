@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import os
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -53,6 +54,7 @@ def offers_page(
             "participant_counts": participant_counts,
             "joined_offer_ids": joined_offer_ids,
             "creators": creators,
+            "google_maps_api_key": os.getenv("GOOGLE_MAPS_API_KEY"),
         },
     )
 
