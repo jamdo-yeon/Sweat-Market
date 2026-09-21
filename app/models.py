@@ -124,3 +124,6 @@ class WorkoutParticipant(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", index=True)
 
     joined_at: datetime = Field(default_factory=utcnow)
+
+    checked_in: bool = False
+    checked_in_at: Optional[datetime] = None
