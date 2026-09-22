@@ -154,11 +154,37 @@
                   Your workout
                 </span>
               {% elif offer.id in joined_offer_ids %}
-                <form method="post" action="/offers/{{ offer.id }}/leave">
-                  <button type="submit" class="btn btn-ghost">
-                    Leave workout
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-primary verify-location-btn"
+                    data-offer-id="{{ offer.id }}"
+                  >
+                    Verify my location
                   </button>
-                </form>
+
+                  <form method="post" action="/offers/{{ offer.id }}/leave">
+                    <button type="submit" class="btn btn-ghost">
+                      Leave workout
+                    </button>
+                  </form>
+                </div>
+
+                {% if status_offer_id == offer.id|string %}
+                  {% if location_status == "verified" %}
+                    <p class="mt-2 text-sm text-green-600">
+                      Location verified. You're close enough to the workout.
+                    </p>
+                  {% elif location_status == "too_far" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      You're too far from the workout location.
+                    </p>
+                  {% elif location_status == "unavailable" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      This workout does not have valid location coordinates.
+                    </p>
+                  {% endif %}
+                {% endif %}
 
               {% elif participant_counts[offer.id] >= offer.max_participants %}
                 <span class="text-sm font-medium text-neutral-500">
@@ -239,5 +265,50 @@
   defer>
 </script>
 {% endif %}
+
+<script>
+  document.querySelectorAll(".verify-location-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const offerId = button.dataset.offerId;
+
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Checking location...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = `/offers/${offerId}/verify-location`;
+
+          const latitude = document.createElement("input");
+          latitude.type = "hidden";
+          latitude.name = "latitude";
+          latitude.value = position.coords.latitude;
+
+          const longitude = document.createElement("input");
+          longitude.type = "hidden";
+          longitude.name = "longitude";
+          longitude.value = position.coords.longitude;
+
+          form.appendChild(latitude);
+          form.appendChild(longitude);
+
+          document.body.appendChild(form);
+          form.submit();
+        },
+        () => {
+          button.disabled = false;
+          button.textContent = "Verify my location";
+          alert("Unable to access your location. Please allow location access.");
+        }
+      );
+    });
+  });
+</script>
 
 {% endblock %}

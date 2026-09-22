@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
+from math import radians, sin, cos, sqrt, atan2
 
 from .auth import current_user
 from .db import get_session
@@ -12,6 +13,23 @@ from .models import User, WorkoutOffer, WorkoutParticipant
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+def distance_meters(lat1, lon1, lat2, lon2):
+    earth_radius_m = 6_371_000
+
+    phi1 = radians(lat1)
+    phi2 = radians(lat2)
+    delta_phi = radians(lat2 - lat1)
+    delta_lambda = radians(lon2 - lon1)
+
+    a = (
+        sin(delta_phi / 2) ** 2
+        + cos(phi1) * cos(phi2) * sin(delta_lambda / 2) ** 2
+    )
+
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return earth_radius_m * c
 
 
 @router.get("/offers")
@@ -56,6 +74,8 @@ def offers_page(
             "creators": creators,
             "google_maps_api_key": os.getenv("GOOGLE_MAPS_API_KEY"),
             "location_error": request.query_params.get("error") == "location",
+            "location_status": request.query_params.get("location_status"),
+            "status_offer_id": request.query_params.get("offer_id"),
         },
     )
 
@@ -182,3 +202,54 @@ def leave_offer(
         session.commit()
 
     return RedirectResponse("/offers", status_code=303)
+
+@router.post("/offers/{offer_id}/verify-location")
+def verify_location(
+    offer_id: int,
+    request: Request,
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    session: Session = Depends(get_session),
+):
+    user = current_user(request, session)
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    offer = session.get(WorkoutOffer, offer_id)
+    if not offer:
+        return RedirectResponse("/offers", status_code=303)
+
+    participant = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id,
+            WorkoutParticipant.user_id == user.id,
+        )
+    ).first()
+
+    if not participant:
+        return RedirectResponse("/offers", status_code=303)
+
+    if offer.latitude is None or offer.longitude is None:
+        return RedirectResponse(
+            f"/offers?location_status=unavailable&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    distance = distance_meters(
+        latitude,
+        longitude,
+        offer.latitude,
+        offer.longitude,
+    )
+
+    if distance <= 150:
+        return RedirectResponse(
+            f"/offers?location_status=verified&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        f"/offers?location_status=too_far&offer_id={offer_id}",
+        status_code=303,
+    )
