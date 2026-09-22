@@ -183,6 +183,10 @@
                     <p class="mt-2 text-sm text-red-600">
                       This workout does not have valid location coordinates.
                     </p>
+                  {% elif location_status == "wrong_time" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      Location verification is only available within 30 minutes of the workout.
+                    </p>
                   {% endif %}
                 {% endif %}
 

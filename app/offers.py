@@ -230,6 +230,21 @@ def verify_location(
     if not participant:
         return RedirectResponse("/offers", status_code=303)
 
+    now = datetime.now(timezone.utc)
+
+    scheduled_at = offer.scheduled_at
+
+    if scheduled_at.tzinfo is None:
+        scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
+
+    seconds_from_workout = abs((now - scheduled_at).total_seconds())
+
+    if seconds_from_workout > 30 * 60:
+        return RedirectResponse(
+            f"/offers?location_status=wrong_time&offer_id={offer_id}",
+            status_code=303,
+        )
+
     if offer.latitude is None or offer.longitude is None:
         return RedirectResponse(
             f"/offers?location_status=unavailable&offer_id={offer_id}",
