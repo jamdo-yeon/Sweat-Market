@@ -129,3 +129,7 @@ class WorkoutParticipant(SQLModel, table=True):
 
     checked_in: bool = False
     checked_in_at: Optional[datetime] = None
+
+    verified_latitude: Optional[float] = None
+    verified_longitude: Optional[float] = None
+    location_verified_at: Optional[datetime] = None

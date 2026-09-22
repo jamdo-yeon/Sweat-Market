@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import os
 from fastapi import APIRouter, Depends, Form, Request
@@ -244,6 +244,12 @@ def verify_location(
     )
 
     if distance <= 150:
+        participant.verified_latitude = latitude
+        participant.verified_longitude = longitude
+        participant.location_verified_at = datetime.now(timezone.utc)
+
+        session.add(participant)
+        session.commit()
         return RedirectResponse(
             f"/offers?location_status=verified&offer_id={offer_id}",
             status_code=303,
