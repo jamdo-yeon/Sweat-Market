@@ -17,7 +17,9 @@ def _create_offer(client, max_participants=3):
         "/offers",
         data={
             "sport": "running",
-            "location": "SFU Burnaby",
+            "location": "Simon Fraser University — Burnaby, BC",
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
             "scheduled_at": "2026-09-25T18:00",
             "description": "Evening run",
             "max_participants": str(max_participants),
@@ -39,7 +41,9 @@ def test_create_offer_requires_login(client):
         "/offers",
         data={
             "sport": "running",
-            "location": "SFU Burnaby",
+            "location": "Simon Fraser University — Burnaby, BC",
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
             "scheduled_at": "2026-09-25T18:00",
             "max_participants": "3",
         },
@@ -160,3 +164,25 @@ def test_full_offer_rejects_additional_user(client):
         ).all()
 
         assert len(participants) == 2
+
+def test_create_offer_requires_valid_location(client):
+    username, email = _unique_user()
+    signup(client, username=username, email=email)
+
+    r = client.post(
+        "/offers",
+        data={
+            "sport": "running",
+            "location": "Random typed text",
+            "scheduled_at": "2026-09-25T18:00",
+            "max_participants": "3",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/offers?error=location"
+
+    with SQLSession(engine) as session:
+        offer = session.exec(select(WorkoutOffer)).first()
+        assert offer is None

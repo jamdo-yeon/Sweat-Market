@@ -55,6 +55,7 @@ def offers_page(
             "joined_offer_ids": joined_offer_ids,
             "creators": creators,
             "google_maps_api_key": os.getenv("GOOGLE_MAPS_API_KEY"),
+            "location_error": request.query_params.get("error") == "location",
         },
     )
 
@@ -75,6 +76,9 @@ def create_offer(
 
     if not user:
         return RedirectResponse("/login", status_code=303)
+
+    if latitude is None or longitude is None:
+        return RedirectResponse("/offers?error=location", status_code=303)
 
     offer = WorkoutOffer(
         creator_id=user.id,

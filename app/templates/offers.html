@@ -39,6 +39,11 @@
           <input type="hidden" name="location" id="workout-location">
           <input type="hidden" name="latitude" id="workout-latitude">
           <input type="hidden" name="longitude" id="workout-longitude">
+          {% if location_error %}
+            <p class="mt-2 text-sm text-red-600">
+              Please select a valid location from the suggestions.
+            </p>
+          {% endif %}
         </div>
 
         <div>

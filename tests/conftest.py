@@ -2,6 +2,9 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import SQLModel
+
+from app.db import engine
 
 
 # IMPORTANT: app import 전에 env 세팅 (engine이 import-time에 잡힐 수 있음)
@@ -15,6 +18,8 @@ from app.main import app  # noqa: E402
 
 @pytest.fixture
 def client():
-    # 매 테스트마다 DB fresh start
+    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.create_all(engine)
+
     with TestClient(app) as c:
-        yield c
+        yield c 
