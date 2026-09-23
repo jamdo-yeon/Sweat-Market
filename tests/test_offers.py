@@ -728,3 +728,68 @@ def test_logged_out_qr_scan_preserves_token_through_login(client):
 
         # Successful QR check-in should also award the reward
         assert user.coins == 10
+
+def test_qr_blocked_when_host_is_not_verified(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+        max_participants=3,
+    )
+
+    # Host intentionally does NOT verify.
+    client.get("/logout")
+
+    # First participant joins and verifies.
+    user1_name, user1_email = _unique_user()
+    signup(client, username=user1_name, email=user1_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    client.get("/logout")
+
+    # Second participant joins and verifies nearby.
+    user2_name, user2_email = _unique_user()
+    signup(client, username=user2_name, email=user2_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2782",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    # The two participants are together, but the host never verified.
+    client.get("/logout")
+
+    login(
+        client,
+        username=creator_name,
+        email=creator_email,
+        password="Passw0rd!",
+    )
+
+    r = client.get(
+        f"/offers/{offer_id}/qr",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/offers"

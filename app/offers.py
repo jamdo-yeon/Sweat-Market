@@ -54,6 +54,7 @@ def recently_verified(participant: WorkoutParticipant) -> bool:
 
 def participants_near_each_other(
     participants: list[WorkoutParticipant],
+    host_user_id: int,
     max_distance_meters: float = 150,
 ) -> bool:
     verified = [
@@ -64,20 +65,31 @@ def participants_near_each_other(
         and participant.verified_longitude is not None
     ]
 
-    if len(verified) < 2:
+    host = next(
+        (
+            participant
+            for participant in verified
+            if participant.user_id == host_user_id
+        ),
+        None,
+    )
+
+    if host is None:
         return False
 
-    for i, first in enumerate(verified):
-        for second in verified[i + 1:]:
-            distance = distance_meters(
-                first.verified_latitude,
-                first.verified_longitude,
-                second.verified_latitude,
-                second.verified_longitude,
-            )
+    for participant in verified:
+        if participant.user_id == host_user_id:
+            continue
 
-            if distance <= max_distance_meters:
-                return True
+        distance = distance_meters(
+            host.verified_latitude,
+            host.verified_longitude,
+            participant.verified_latitude,
+            participant.verified_longitude,
+        )
+
+        if distance <= max_distance_meters:
+            return True
 
     return False
 
@@ -109,7 +121,10 @@ def offers_page(
         if user and any(p.user_id == user.id for p in participants):
             joined_offer_ids.add(offer.id)
 
-        if participants_near_each_other(participants):
+        if participants_near_each_other(
+            participants,
+            host_user_id=offer.creator_id,
+        ):
             qr_ready_offer_ids.add(offer.id)
 
     creators = {
@@ -357,7 +372,10 @@ def workout_qr(
         )
     ).all()
 
-    if not participants_near_each_other(participants):
+    if not participants_near_each_other(
+        participants,
+        host_user_id=offer.creator_id,
+    ):
         return RedirectResponse("/offers", status_code=303)
 
     token = create_checkin_token(offer_id)
