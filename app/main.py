@@ -16,7 +16,7 @@ except Exception:
     pass
 
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -70,6 +70,10 @@ app.add_middleware(
     https_only=os.getenv("VERCEL_ENV") == "production",
     same_site="lax",
 )
+
+@app.get("/logo.svg", include_in_schema=False)
+def logo():
+    return FileResponse("static/logo.svg", media_type="image/svg+xml")
 
 if os.getenv("VERCEL"):
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
