@@ -621,3 +621,110 @@ def test_qr_blocked_when_verified_participants_are_far_apart(client):
 
     assert r.status_code == 303
     assert r.headers["location"] == "/offers"
+
+def test_logged_out_qr_scan_preserves_token_through_login(client):
+    # Creator creates workout
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    # Participant creates account and joins workout
+    user_name, user_email = _unique_user()
+    signup(
+        client,
+        username=user_name,
+        email=user_email,
+        password="Passw0rd!",
+    )
+
+    client.post(f"/offers/{offer_id}/join")
+
+    # Participant verifies location while logged in
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    token = create_checkin_token(offer_id)
+
+    # Simulate scanning the QR while logged out
+    client.get("/logout")
+
+    r = client.get(
+        f"/offers/{offer_id}/checkin?token={token}",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+
+    login_url = r.headers["location"]
+
+    assert login_url.startswith("/login?next=")
+    assert token in login_url
+
+    # Open login page so the hidden `next` value is rendered
+    login_page = client.get(login_url)
+
+    assert login_page.status_code == 200
+    assert token in login_page.text
+
+    # Submit login with the original check-in URL preserved
+    next_url = f"/offers/{offer_id}/checkin?token={token}"
+
+    r = client.post(
+        "/login",
+        data={
+            "email": user_email,
+            "password": "Passw0rd!",
+            "next": next_url,
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == next_url
+
+    # Browser follows the redirect back to the signed QR check-in
+    r = client.get(
+        r.headers["location"],
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=success&offer_id={offer_id}"
+    )
+
+    # Check-in should actually be persisted
+    with SQLSession(engine) as session:
+        user = session.exec(
+            select(User).where(User.username == user_name)
+        ).first()
+
+        participant = session.exec(
+            select(WorkoutParticipant).where(
+                WorkoutParticipant.offer_id == offer_id,
+                WorkoutParticipant.user_id == user.id,
+            )
+        ).first()
+
+        assert participant is not None
+        assert participant.checked_in is True
+        assert participant.checked_in_at is not None
+
+        # Successful QR check-in should also award the reward
+        assert user.coins == 10

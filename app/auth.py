@@ -157,8 +157,19 @@ def signup(
 
 # ---------- Login / Logout ----------
 @router.get("/login")
-def login_form(request: Request, msg: str | None = None):
-    return templates.TemplateResponse(request, "login.html", {"error": msg})
+def login_form(
+    request: Request,
+    msg: str | None = None,
+    next: str | None = None,
+):
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "error": msg,
+            "next": next,
+        },
+    )
 
 
 @router.post("/login")
@@ -167,6 +178,7 @@ def login(
     username: str | None = Form(None),
     email: str | None = Form(None),
     password: str = Form(...),
+    next: str | None = Form(None),
     session: Session = Depends(get_session),
 ):
     password = password or ""
@@ -188,7 +200,12 @@ def login(
         )
 
     request.session["uid"] = int(user.id)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    redirect_url = next or "/"
+
+    return RedirectResponse(
+        url=redirect_url,
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 @router.post("/logout")

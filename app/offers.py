@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from math import radians, sin, cos, sqrt, atan2
+from urllib.parse import quote
 
 from .auth import current_user
 from .db import get_session
@@ -379,8 +380,13 @@ def checkin(
     user = current_user(request, session)
 
     if not user:
+        next_url = f"/offers/{offer_id}/checkin"
+
+        if token:
+            next_url += f"?token={token}"
+
         return RedirectResponse(
-            f"/login?next=/offers/{offer_id}/checkin",
+            f"/login?next={quote(next_url, safe='')}",
             status_code=303,
         )
 
