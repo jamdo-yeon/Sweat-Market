@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.db import engine
 from app.models import User, Tx, WorkoutOffer, WorkoutParticipant
-from tests.test_auth import signup
+from tests.test_auth import signup, login
 from app.qr import create_checkin_token
 
 
@@ -496,3 +496,128 @@ def test_checkin_awards_coins_only_once(client):
         ).all()
 
         assert len(transactions) == 1
+
+def test_qr_available_when_verified_participants_are_near_each_other(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    # Host verifies at workout location
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    client.get("/logout")
+
+    # Second participant joins and verifies nearby
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2782",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    # QR is only accessible to the host
+    client.get("/logout")
+
+    login(
+        client,
+        username=creator_name,
+        email=creator_email,
+        password="Passw0rd!",
+    )
+
+    r = client.get(
+        f"/offers/{offer_id}/qr",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+
+def test_qr_blocked_when_verified_participants_are_far_apart(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    # Host verifies at workout location
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    # Directly simulate a recent verification far from the host.
+    # We do this at the DB level because the normal verification endpoint
+    # correctly rejects locations far from the workout.
+    with SQLSession(engine) as session:
+        user = session.exec(
+            select(User).where(User.username == user_name)
+        ).first()
+
+        participant = session.exec(
+            select(WorkoutParticipant).where(
+                WorkoutParticipant.offer_id == offer_id,
+                WorkoutParticipant.user_id == user.id,
+            )
+        ).first()
+
+        participant.verified_latitude = 49.2800
+        participant.verified_longitude = -122.9199
+        participant.location_verified_at = datetime.now(timezone.utc)
+
+        session.add(participant)
+        session.commit()
+
+    client.get("/logout")
+
+    login(
+        client,
+        username=creator_name,
+        email=creator_email,
+        password="Passw0rd!",
+    )
+
+    r = client.get(
+        f"/offers/{offer_id}/qr",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/offers"

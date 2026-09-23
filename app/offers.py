@@ -51,6 +51,35 @@ def recently_verified(participant: WorkoutParticipant) -> bool:
         datetime.now(timezone.utc) - verified_at
     ).total_seconds() <= 10 * 60
 
+def participants_near_each_other(
+    participants: list[WorkoutParticipant],
+    max_distance_meters: float = 150,
+) -> bool:
+    verified = [
+        participant
+        for participant in participants
+        if recently_verified(participant)
+        and participant.verified_latitude is not None
+        and participant.verified_longitude is not None
+    ]
+
+    if len(verified) < 2:
+        return False
+
+    for i, first in enumerate(verified):
+        for second in verified[i + 1:]:
+            distance = distance_meters(
+                first.verified_latitude,
+                first.verified_longitude,
+                second.verified_latitude,
+                second.verified_longitude,
+            )
+
+            if distance <= max_distance_meters:
+                return True
+
+    return False
+
 
 @router.get("/offers")
 def offers_page(
@@ -79,12 +108,7 @@ def offers_page(
         if user and any(p.user_id == user.id for p in participants):
             joined_offer_ids.add(offer.id)
 
-        verified_count = sum(
-            1 for participant in participants
-            if recently_verified(participant)
-        )
-
-        if verified_count >= 2:
+        if participants_near_each_other(participants):
             qr_ready_offer_ids.add(offer.id)
 
     creators = {
@@ -328,13 +352,7 @@ def workout_qr(
         )
     ).all()
 
-    verified_count = sum(
-        1
-        for participant in participants
-        if recently_verified(participant)
-    )
-
-    if verified_count < 2:
+    if not participants_near_each_other(participants):
         return RedirectResponse("/offers", status_code=303)
 
     token = create_checkin_token(offer_id)
