@@ -57,6 +57,7 @@
 
           <a
             href="/chat/{{ conversation_room.id }}"
+            data-room-id="{{ conversation_room.id }}"
             data-workout-title="{{ conversation_offer.title|lower }}"
             class="conversation-item block border-b border-neutral-100 p-4 transition hover:bg-neutral-50
               {% if conversation_room.id == room.id %}bg-neutral-100{% endif %}"
@@ -76,7 +77,7 @@
                 </p>
 
                 {% if conversation.last_message %}
-                  <p class="mt-1 truncate text-xs text-neutral-500">
+                  <p class="conversation-preview mt-1 truncate text-xs text-neutral-500">
                     {% if conversation.last_message.sender_id == user.id %}
                       You:
                     {% elif conversation.last_sender %}
@@ -265,6 +266,19 @@
             autocomplete="off"
             class="input min-w-0 flex-1"
           >
+
+          <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" />
+
+          <button
+            id="image-upload-btn"
+            type="button"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-700 transition hover:bg-neutral-50"
+            aria-label="Upload image"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-3.586 3.586a2 2 0 1 1-2.828-2.828L12.344 4a4 4 0 1 1 5.657 5.657L12 15.828A6 6 0 1 1 6.343 10.17" />
+            </svg>
+          </button>
 
           <button
             type="submit"
@@ -528,6 +542,9 @@
   const form = document.getElementById("message-form");
   const input = document.getElementById("message-input");
   const emptyChat = document.getElementById("empty-chat");
+  const conversationList = document.getElementById("conversation-list");
+  const imageInput = document.getElementById("image-input");
+  const imageUploadButton = document.getElementById("image-upload-btn");
 
   const currentUserId = Number("{{ user.id }}");
 
@@ -536,18 +553,49 @@
 
   const roomId = Number("{{ room.id }}");
 
+  function formatTime(isoString) {
+    return new Date(isoString).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  function updateSidebarPreview(data) {
+    const targetRoomId = Number(data.room_id || roomId);
+    const item = document.querySelector(`.conversation-item[data-room-id="${targetRoomId}"]`);
+
+    if (!item) {
+      return;
+    }
+
+    const mine = Number(data.sender_id) === Number(currentUserId);
+    const senderDisplay = mine ? "You" : (data.sender_name || "Someone");
+    const previewText = data.type === "image"
+      ? `${senderDisplay}: Sent an image`
+      : `${senderDisplay}: ${data.content || ""}`.trim();
+
+    const preview = item.querySelector(".conversation-preview");
+    if (preview) {
+      preview.textContent = previewText;
+    }
+
+    const time = item.querySelector(".conversation-time");
+    if (time && data.created_at) {
+      time.setAttribute("datetime", data.created_at);
+      time.textContent = formatTime(data.created_at);
+    }
+
+    if (conversationList && targetRoomId === Number(roomId)) {
+      conversationList.prepend(item);
+    }
+  }
+
   const socket = new WebSocket(
     `${protocol}://${window.location.host}/ws/chat/${roomId}`
   );
 
-
-  // ---------------------------------------------------------
-  // Receive live messages
-  // ---------------------------------------------------------
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    if (data.type !== "text") {
+  function appendIncomingMessage(data) {
+    if (data.type !== "text" && data.type !== "image") {
       return;
     }
 
@@ -555,52 +603,51 @@
       emptyChat.remove();
     }
 
-    const mine =
-      Number(data.sender_id) === Number(currentUserId);
-
+    const mine = Number(data.sender_id) === Number(currentUserId);
     const row = document.createElement("div");
-
-    row.className =
-      `message-row flex ${mine ? "justify-end" : "justify-start"}`;
+    row.className = `message-row flex ${mine ? "justify-end" : "justify-start"}`;
 
     const container = document.createElement("div");
     container.className = "max-w-[75%]";
 
-    const bubble = document.createElement("div");
+    if (!mine && data.sender_name) {
+      const senderLabel = document.createElement("p");
+      senderLabel.className = "mb-1 px-1 text-xs text-neutral-500";
+      senderLabel.textContent = data.sender_name;
+      container.appendChild(senderLabel);
+    }
 
-    bubble.className = mine
-      ? "rounded-2xl rounded-br-md bg-black px-4 py-2.5 text-sm text-white"
-      : "rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-sm text-neutral-900 shadow-sm ring-1 ring-neutral-200";
-
-    bubble.textContent = data.content;
+    if (data.type === "image" && data.image_url) {
+      const image = document.createElement("img");
+      image.src = data.image_url;
+      image.alt = "Chat image";
+      image.className = "max-w-xs rounded-2xl border border-neutral-200";
+      container.appendChild(image);
+    } else if (data.content) {
+      const bubble = document.createElement("div");
+      bubble.className = mine
+        ? "rounded-2xl rounded-br-md bg-black px-4 py-2.5 text-sm text-white"
+        : "rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-sm text-neutral-900 shadow-sm ring-1 ring-neutral-200";
+      bubble.textContent = data.content;
+      container.appendChild(bubble);
+    }
 
     const time = document.createElement("p");
-
-    time.className =
-      `mt-1 px-1 text-[11px] text-neutral-400 ${
-        mine ? "text-right" : ""
-      }`;
-
-    time.textContent = new Date(
-      data.created_at
-    ).toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-    container.appendChild(bubble);
+    time.className = `mt-1 px-1 text-[11px] text-neutral-400 ${mine ? "text-right" : ""}`;
+    time.textContent = formatTime(data.created_at);
     container.appendChild(time);
 
     row.appendChild(container);
     messages.appendChild(row);
-
+    updateSidebarPreview(data);
     messages.scrollTop = messages.scrollHeight;
+  }
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    appendIncomingMessage(data);
   };
 
-
-  // ---------------------------------------------------------
-  // Send message
-  // ---------------------------------------------------------
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -624,30 +671,61 @@
     input.focus();
   });
 
+  if (imageUploadButton && imageInput) {
+    imageUploadButton.addEventListener("click", () => {
+      imageInput.click();
+    });
 
-  // ---------------------------------------------------------
-  // Workout chat search
-  // ---------------------------------------------------------
+    imageInput.addEventListener("change", async () => {
+      const file = imageInput.files && imageInput.files[0];
+      if (!file) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        const response = await fetch(`/chat/${roomId}/image`, {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          alert(message || "Unable to upload image.");
+          imageInput.value = "";
+          return;
+        }
+
+        window.location.href = `/chat/${roomId}`;
+      } catch (error) {
+        alert("Unable to upload image.");
+      } finally {
+        imageInput.value = "";
+      }
+    });
+  }
+
   const search = document.getElementById("chat-search");
 
-  search.addEventListener("input", () => {
-    const query = search.value.toLowerCase().trim();
+  if (search) {
+    search.addEventListener("input", () => {
+      const query = search.value.toLowerCase().trim();
 
-    document
-      .querySelectorAll(".conversation-item")
-      .forEach((conversation) => {
-        const title =
-          conversation.dataset.workoutTitle || "";
+      document
+        .querySelectorAll(".conversation-item")
+        .forEach((conversation) => {
+          const title =
+            conversation.dataset.workoutTitle || "";
 
-        conversation.style.display =
-          title.includes(query) ? "" : "none";
-      });
-  });
+          conversation.style.display =
+            title.includes(query) ? "" : "none";
+        });
+    });
+  }
 
-
-  // ---------------------------------------------------------
-  // Convert UTC timestamps to user's local timezone
-  // ---------------------------------------------------------
   document.querySelectorAll(".workout-time").forEach((element) => {
     const date = new Date(element.dateTime);
 
@@ -660,28 +738,18 @@
     });
   });
 
-
   document.querySelectorAll(".message-time").forEach((element) => {
     const date = new Date(element.dateTime);
 
-    element.textContent = date.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    element.textContent = formatTime(element.dateTime);
   });
 
   document.querySelectorAll(".conversation-time").forEach((element) => {
     const date = new Date(element.dateTime);
 
-    element.textContent = date.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    element.textContent = formatTime(element.dateTime);
   });
 
-  // ---------------------------------------------------------
-  // Verify workout location
-  // ---------------------------------------------------------
   const verifyLocationButton =
     document.getElementById("verify-location-btn");
 

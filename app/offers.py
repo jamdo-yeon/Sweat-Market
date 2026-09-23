@@ -192,6 +192,10 @@ def create_offer(
     session.commit()
     session.refresh(offer)
 
+    from .chat import get_or_create_room
+
+    get_or_create_room(session, offer.id)
+
     # Creator automatically joins their own workout
     participant = WorkoutParticipant(
         offer_id=offer.id,
@@ -244,6 +248,10 @@ def join_offer(
         )
     )
     session.commit()
+
+    from .chat import get_or_create_room
+
+    get_or_create_room(session, offer_id)
 
     return RedirectResponse("/offers", status_code=303)
 

@@ -1,11 +1,12 @@
 from io import BytesIO
-import os
 
 import qrcode
 from itsdangerous import URLSafeTimedSerializer
 
+from .config import get_secret_key
 
-QR_SECRET = os.getenv("SECRET_KEY", "dev-secret-change-me")
+
+QR_SECRET = get_secret_key()
 QR_SALT = "workout-checkin"
 
 

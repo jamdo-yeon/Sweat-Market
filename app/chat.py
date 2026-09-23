@@ -1,6 +1,6 @@
 # app/chat.py
 from fastapi import APIRouter, Depends, Request, Form, UploadFile, File, WebSocket, WebSocketDisconnect
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 import os, json, time
@@ -46,6 +46,44 @@ class RoomManager:
 
 
 manager = RoomManager()
+ALLOWED_IMAGE_MIME_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+MAX_IMAGE_BYTES = 2 * 1024 * 1024
+
+
+def get_user_display_name(user: User | None) -> str:
+    if not user:
+        return "Unknown user"
+    return user.nickname or user.username
+
+
+def _validate_image_upload(filename: str | None, content_type: str | None, data: bytes) -> str | None:
+    if not data:
+        return None
+
+    mime = (content_type or "").lower()
+    if mime in ALLOWED_IMAGE_MIME_TYPES:
+        if len(data) > MAX_IMAGE_BYTES:
+            return None
+        return mime
+
+    if len(data) > MAX_IMAGE_BYTES:
+        return None
+
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "image/gif"
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "image/webp"
+
+    return None
 
 
 def is_workout_participant(
@@ -155,6 +193,10 @@ def chat_list(
         session,
         me.id,
     )
+
+    if conversations:
+        latest_room_id = conversations[0]["room"].id
+        return RedirectResponse(f"/chat/{latest_room_id}", status_code=303)
 
     return templates.TemplateResponse(
         request,
@@ -335,7 +377,12 @@ async def ws_chat(room_id: int, websocket: WebSocket, session: Session = Depends
             text = await websocket.receive_text()
             data = json.loads(text)
             content = (data.get("content") or "").strip()
+            if not content:
+                continue
+
             sender_id = int(uid)
+            sender = session.get(User, sender_id)
+            sender_name = get_user_display_name(sender)
 
             msg = Message(room_id=room_id, sender_id=sender_id, content=content)
             session.add(msg)
@@ -348,8 +395,10 @@ async def ws_chat(room_id: int, websocket: WebSocket, session: Session = Depends
                     "type": "text",
                     "id": msg.id,
                     "sender_id": sender_id,
+                    "sender_name": sender_name,
                     "content": content,
                     "created_at": msg.created_at.isoformat(),
+                    "room_id": room_id,
                 },
             )
     except WebSocketDisconnect:
@@ -379,16 +428,26 @@ async def upload_image(
     ):
         return RedirectResponse("/chat", status_code=303)
 
-    ext = os.path.splitext(image.filename or "")[1].lower() or ".jpg"
+    data = await image.read()
+
+    mime = _validate_image_upload(image.filename, image.content_type, data)
+    if mime is None:
+        return Response(
+            "Unsupported image upload. Please use JPEG, PNG, WEBP, or GIF under 2 MB.",
+            status_code=400,
+        )
+
+    ext = ALLOWED_IMAGE_MIME_TYPES.get(mime, ".jpg")
     filename = f"{room_id}_{me.id}_{int(time.time())}{ext}"
     path = upload_directory("chat_images") / filename
 
-    data = await image.read()
     with path.open("wb") as f:
         f.write(data)
 
     url = f"{UPLOAD_URL_PREFIX}/chat_images/{filename}"
 
+    sender = session.get(User, me.id)
+    sender_name = get_user_display_name(sender)
     msg = Message(room_id=room_id, sender_id=me.id, image_url=url, content="")
     session.add(msg)
     session.commit()
@@ -400,9 +459,14 @@ async def upload_image(
             "type": "image",
             "id": msg.id,
             "sender_id": me.id,
+            "sender_name": sender_name,
             "image_url": url,
             "created_at": msg.created_at.isoformat(),
+            "room_id": room_id,
         },
     )
+
+    if request.headers.get("accept", "").lower().find("application/json") >= 0 or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse({"ok": True, "image_url": url})
 
     return RedirectResponse(f"/chat/{room_id}", status_code=303)

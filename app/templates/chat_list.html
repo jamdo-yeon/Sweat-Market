@@ -1,68 +1,74 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-  <h2 class="text-2xl font-bold mb-2">Workout Chats</h2>
-
-  <p class="text-gray-500 mb-6">
-    Chat with people in the workouts you've joined.
-  </p>
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold tracking-tight">Chat</h1>
+    <p class="mt-1 text-sm text-neutral-500">
+      Workout conversations for the sessions you’re in.
+    </p>
+  </div>
 
   {% if conversations|length == 0 %}
-    <div class="border rounded-lg p-6 text-center bg-white">
-      <p class="font-medium">No workout chats yet.</p>
-
-      <p class="text-sm text-gray-500 mt-1">
-        Join a workout to start chatting with the group.
+    <div class="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+        💬
+      </div>
+      <p class="mt-4 text-lg font-semibold">No workout chats yet.</p>
+      <p class="mt-2 text-sm text-neutral-500">
+        Join a workout to start messaging your group.
       </p>
-
-      <a
-        href="/offers"
-        class="inline-block mt-4 text-blue-600 hover:underline"
-      >
+      <a href="/offers" class="btn btn-primary mt-5 inline-flex">
         Find workouts
       </a>
     </div>
-
   {% else %}
+    <div class="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <div class="border-b border-neutral-200 p-4">
+        <h2 class="font-semibold">Workout chats</h2>
+      </div>
 
-    <ul class="space-y-3">
-      {% for conversation in conversations %}
-
-        {% set room = conversation.room %}
-        {% set offer = conversation.offer %}
-
-        <li class="border rounded-lg p-4 bg-white flex justify-between items-center">
-
-          <div>
-            <a
-              href="/chat/{{ room.id }}"
-              class="font-semibold text-lg hover:underline"
-            >
-              {{ offer.title }}
-            </a>
-
-            <div class="text-sm text-gray-500 mt-1">
-              {{ offer.location }}
+      <div class="divide-y divide-neutral-200">
+        {% for conversation in conversations %}
+          {% set room = conversation.room %}
+          {% set offer = conversation.offer %}
+          <a href="/chat/{{ room.id }}" class="block p-4 transition hover:bg-neutral-50">
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
+                {{ offer.sport[0]|upper }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="truncate font-semibold">{{ offer.title }}</p>
+                  {% if conversation.last_message %}
+                    <time class="shrink-0 text-[11px] text-neutral-400" datetime="{{ conversation.last_message.created_at.isoformat() }}{% if conversation.last_message.created_at.tzinfo is none %}Z{% endif %}">
+                      {{ conversation.last_message.created_at.strftime('%I:%M %p') }}
+                    </time>
+                  {% endif %}
+                </div>
+                <p class="mt-1 text-sm text-neutral-500">{{ offer.location }}</p>
+                {% if conversation.last_message %}
+                  <p class="mt-1 truncate text-xs text-neutral-500">
+                    {% if conversation.last_message.sender_id == user.id %}
+                      You:
+                    {% elif conversation.last_sender %}
+                      {{ conversation.last_sender.nickname or conversation.last_sender.username }}:
+                    {% endif %}
+                    {% if conversation.last_message.content %}
+                      {{ conversation.last_message.content }}
+                    {% elif conversation.last_message.image_url %}
+                      Sent an image
+                    {% endif %}
+                  </p>
+                {% else %}
+                  <p class="mt-1 text-xs text-neutral-400">No messages yet</p>
+                {% endif %}
+              </div>
             </div>
-
-            <div class="text-sm text-gray-500">
-              {{ offer.scheduled_at }}
-            </div>
-          </div>
-
-          <a
-            href="/chat/{{ room.id }}"
-            class="text-blue-600 font-medium hover:underline"
-          >
-            Open chat
           </a>
-
-        </li>
-
-      {% endfor %}
-    </ul>
-
+        {% endfor %}
+      </div>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

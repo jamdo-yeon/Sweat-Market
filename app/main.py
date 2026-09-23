@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import random
-import logging
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
@@ -24,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session as SQLSession, select
 
 # ---- Project modules
+from .config import get_secret_key
 from .db import init_db, engine
 from .auth import router as auth_router
 from .chat import router as chat_router
@@ -52,7 +52,6 @@ def _is_demo(request: Request) -> bool:
 
 
 # ---- App setup
-logging.getLogger("uvicorn").info(f"DATABASE_URL={os.getenv('DATABASE_URL')}")
 
 
 @asynccontextmanager
@@ -66,13 +65,12 @@ app = FastAPI(title="SweatMarket", lifespan=lifespan)
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", "dev-secret"),
+    secret_key=get_secret_key(),
     session_cookie="sweatmarket_session",
     https_only=os.getenv("VERCEL_ENV") == "production",
     same_site="lax",
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 if os.getenv("VERCEL"):
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")

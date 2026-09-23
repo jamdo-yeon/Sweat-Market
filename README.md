@@ -3,7 +3,7 @@
 SweatMarket is a hackathon mashup project combining **fitness** 🏃 + **finance** 💰.  
 Users can find workout partners, check in together *(planned: QR + geolocation)*, and earn in-app coins that can later be used in a reward market / DEX *(prototype)*.
 
-**Repo Goal:** demonstrate an end-to-end FastAPI web app with auth, social features (DM + posts), and a demo-friendly wallet/DEX module.
+**Repo Goal:** demonstrate an end-to-end FastAPI web app with auth, workout offers, grouped workout chat, QR/location verification, rewards, and a demo-friendly wallet/DEX module.
 
 ---
 
@@ -28,9 +28,10 @@ Users can find workout partners, check in together *(planned: QR + geolocation)*
   - Text messages (real-time)
   - Images (upload + broadcast)
 
-### 📸 Community Posts
-- Create posts with caption + optional image upload
-- Posts list + “New Post” flow
+### � Workout chat
+- Group conversations tied to each workout offer
+- Live text updates and image sharing for participants
+- Host + participant check-in flow with QR and geolocation verification
 
 ### 💰 Wallet + Market (DEX) — Prototype
 - Wallet page shows transactions / coin balance
@@ -57,14 +58,14 @@ app/
   main.py           # FastAPI app entry (home, posts, wallet, dex)
   auth.py           # signup/login/logout + profile edit flows
   chat.py           # DM routes + websocket handler
-  posts.py          # posts list/create routes
-  models.py         # SQLModel tables (User, Post, ChatRoom, etc.)
+  chat.py           # workout chat + websocket routes
+  models.py         # SQLModel tables (User, ChatRoom, Message, WorkoutOffer, etc.)
   db.py             # engine + init_db + session dependency
   templates/        # Jinja2 HTML pages
 
 static/
   avatars/          # uploaded profile photos
-  post_images/      # uploaded post images
+  chat_images/      # uploaded workout chat images
   chat_images/      # uploaded chat images
 
 tests/
@@ -139,7 +140,7 @@ Signup/login flow creates a session cookie
 
 Protected route redirects when not authenticated
 
-Posting with caption (+ optional image upload)
+Sharing workout updates with participant image uploads
 
 WebSocket DM basic connection & messaging
 

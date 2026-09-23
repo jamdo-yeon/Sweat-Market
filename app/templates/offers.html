@@ -118,8 +118,8 @@
     </div>
 
     <!-- Available workouts -->
-    <div>
-      <div class="mb-4 flex items-center justify-between">
+    <div class="min-w-0">
+      <div class="mb-4 flex items-center justify-between gap-3">
         <h2 class="text-lg font-semibold">Available workouts</h2>
         <span class="text-sm text-neutral-500">
           {{ offers|length }} session{% if offers|length != 1 %}s{% endif %}
@@ -128,64 +128,115 @@
 
       <div class="space-y-4">
         {% for offer in offers %}
-        <div class="rounded-xl border border-neutral-200 p-5">
+        <article class="w-full overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div class="flex flex-col gap-4 p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="min-w-0 flex-1">
+                <h3 class="break-words text-lg font-semibold leading-tight">
+                  {{ offer.title }}
+                </h3>
 
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h3 class="text-lg font-semibold">
-                {{ offer.title }}
-              </h3>
+                <p class="mt-1 text-sm text-neutral-500 capitalize">
+                  {{ offer.sport }}
+                </p>
 
-              <p class="mt-1 text-sm text-neutral-500 capitalize">
-                {{ offer.sport }}
-              </p>
+                <p class="mt-2 break-words text-sm text-neutral-600">
+                  {{ offer.location }}
+                </p>
+              </div>
 
-              <p class="mt-1 text-sm text-neutral-600">
-                {{ offer.location }}
-              </p>
+              <span class="shrink-0 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
+                {{ participant_counts[offer.id] }}/{{ offer.max_participants }}
+              </span>
+            </div>
 
-            <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium">
-              {{ participant_counts[offer.id] }}/{{ offer.max_participants }}
-            </span>
-          </div>
-
-          <div class="mt-4 space-y-1 text-sm text-neutral-600">
-            <p>
-              <strong>When:</strong>
+            <div class="grid gap-2 text-sm text-neutral-600 sm:grid-cols-[auto_1fr] sm:gap-x-4">
+              <p class="font-medium text-neutral-500">When:</p>
               <time
-                class="workout-time"
+                class="workout-time break-words"
                 datetime="{{ offer.scheduled_at.isoformat() }}{% if offer.scheduled_at.tzinfo is none %}Z{% endif %}"
               >
                 {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }} UTC
               </time>
+
+              <p class="font-medium text-neutral-500">Created by:</p>
+              <p class="break-words">
+                {% set creator = creators.get(offer.creator_id) %}
+                {% if creator %}
+                  {{ creator.nickname or creator.username }}
+                {% else %}
+                  Unknown user
+                {% endif %}
+              </p>
+            </div>
+
+            {% if offer.description %}
+            <p class="text-sm text-neutral-700">
+              {{ offer.description }}
             </p>
+            {% endif %}
 
-            <p>
-              <strong>Created by:</strong>
-              {% set creator = creators.get(offer.creator_id) %}
-              {% if creator %}
-                {{ creator.nickname or creator.username }}
-              {% else %}
-                Unknown user
-              {% endif %}
-            </p>
-          </div>
+            <div class="mt-auto pt-1">
+              {% if user %}
 
-          {% if offer.description %}
-          <p class="mt-3 text-sm text-neutral-700">
-            {{ offer.description }}
-          </p>
-          {% endif %}
+                {% if offer.creator_id == user.id %}
+                  <div class="space-y-3">
+                    <p class="text-sm font-medium text-neutral-500">
+                      Your workout
+                    </p>
 
-          <div class="mt-4">
-            {% if user %}
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-primary verify-location-btn"
+                        data-offer-id="{{ offer.id }}"
+                      >
+                        Verify my location
+                      </button>
 
-              {% if offer.creator_id == user.id %}
-                <div class="space-y-2">
-                  <p class="text-sm font-medium text-neutral-500">
-                    Your workout
-                  </p>
+                      <a
+                        href="/offers/{{ offer.id }}/chat"
+                        class="btn btn-ghost"
+                      >
+                        Open chat
+                      </a>
+                    </div>
 
+                    {% if offer.id in qr_ready_offer_ids %}
+                      <div class="space-y-2">
+                        <p class="text-sm font-medium text-green-600">
+                          Participants verified — QR check-in ready.
+                        </p>
+
+                        <img
+                          src="/offers/{{ offer.id }}/qr"
+                          alt="Workout check-in QR code"
+                          class="h-48 w-48 rounded-lg border border-neutral-200 bg-white p-2"
+                        >
+                      </div>
+                    {% else %}
+                      <p class="text-sm text-neutral-500">
+                        Waiting for at least 2 nearby participants to verify.
+                      </p>
+                    {% endif %}
+
+                    {% if status_offer_id == offer.id|string %}
+                      {% if location_status == "verified" %}
+                        <p class="text-sm text-green-600">
+                          Location verified.
+                        </p>
+                      {% elif location_status == "too_far" %}
+                        <p class="text-sm text-red-600">
+                          You're too far from the workout location.
+                        </p>
+                      {% elif location_status == "wrong_time" %}
+                        <p class="text-sm text-red-600">
+                          Location verification is only available within 30 minutes of the workout.
+                        </p>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                {% elif offer.id in joined_offer_ids %}
                   <div class="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -194,142 +245,92 @@
                     >
                       Verify my location
                     </button>
-
                     <a
                       href="/offers/{{ offer.id }}/chat"
                       class="btn btn-ghost"
                     >
                       Open chat
                     </a>
+
+                    <form method="post" action="/offers/{{ offer.id }}/leave" class="inline">
+                      <button type="submit" class="btn btn-ghost">
+                        Leave workout
+                      </button>
+                    </form>
                   </div>
-
-                  {% if offer.id in qr_ready_offer_ids %}
-                    <div class="space-y-2">
-                      <p class="text-sm font-medium text-green-600">
-                        Participants verified — QR check-in ready.
-                      </p>
-
-                      <img
-                        src="/offers/{{ offer.id }}/qr"
-                        alt="Workout check-in QR code"
-                        class="h-48 w-48 rounded-lg border border-neutral-200 bg-white p-2"
-                      >
-                    </div>
-                  {% else %}
-                    <p class="text-sm text-neutral-500">
-                      Waiting for at least 2 nearby participants to verify.
-                    </p>
-                  {% endif %}
 
                   {% if status_offer_id == offer.id|string %}
                     {% if location_status == "verified" %}
-                      <p class="text-sm text-green-600">
-                        Location verified.
+                      <p class="mt-2 text-sm text-green-600">
+                        Location verified. You're close enough to the workout.
                       </p>
                     {% elif location_status == "too_far" %}
-                      <p class="text-sm text-red-600">
+                      <p class="mt-2 text-sm text-red-600">
                         You're too far from the workout location.
                       </p>
+                    {% elif location_status == "unavailable" %}
+                      <p class="mt-2 text-sm text-red-600">
+                        This workout does not have valid location coordinates.
+                      </p>
                     {% elif location_status == "wrong_time" %}
-                      <p class="text-sm text-red-600">
+                      <p class="mt-2 text-sm text-red-600">
                         Location verification is only available within 30 minutes of the workout.
                       </p>
                     {% endif %}
                   {% endif %}
-                </div>
-              {% elif offer.id in joined_offer_ids %}
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    class="btn btn-primary verify-location-btn"
-                    data-offer-id="{{ offer.id }}"
-                  >
-                    Verify my location
-                  </button>
-                  <a
-                    href="/offers/{{ offer.id }}/chat"
-                    class="btn btn-ghost"
-                  >
-                    Open chat
-                  </a>
 
-                  <form method="post" action="/offers/{{ offer.id }}/leave">
-                    <button type="submit" class="btn btn-ghost">
-                      Leave workout
+                  {% if status_offer_id == offer.id|string %}
+                    {% if checkin_status == "success" %}
+                      <p class="mt-2 text-sm font-medium text-green-600">
+                        Check-in complete — you earned 10 coins.
+                      </p>
+                    {% elif checkin_status == "location_required" %}
+                      <p class="mt-2 text-sm text-red-600">
+                        Verify your location before checking in.
+                      </p>
+                    {% elif checkin_status == "not_participant" %}
+                      <p class="mt-2 text-sm text-red-600">
+                        You must join this workout before checking in.
+                      </p>
+                    {% elif checkin_status == "expired_qr" %}
+                      <p class="mt-2 text-sm text-red-600">
+                        This QR code has expired. Ask the host to refresh the page.
+                      </p>
+                    {% elif checkin_status == "invalid_qr" %}
+                      <p class="mt-2 text-sm text-red-600">
+                        This QR code is invalid.
+                      </p>
+                    {% elif checkin_status == "already_checked_in" %}
+                      <p class="mt-2 text-sm text-neutral-600">
+                        You've already checked in for this workout.
+                      </p>
+                    {% endif %}
+                  {% endif %}
+
+                {% elif participant_counts[offer.id] >= offer.max_participants %}
+                  <span class="inline-flex text-sm font-medium text-neutral-500">
+                    Full
+                  </span>
+
+                {% else %}
+                  <form method="post" action="/offers/{{ offer.id }}/join" class="inline-block">
+                    <button type="submit" class="btn btn-primary">
+                      Join workout
                     </button>
                   </form>
-                </div>
-
-                {% if status_offer_id == offer.id|string %}
-                  {% if location_status == "verified" %}
-                    <p class="mt-2 text-sm text-green-600">
-                      Location verified. You're close enough to the workout.
-                    </p>
-                  {% elif location_status == "too_far" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      You're too far from the workout location.
-                    </p>
-                  {% elif location_status == "unavailable" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      This workout does not have valid location coordinates.
-                    </p>
-                  {% elif location_status == "wrong_time" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      Location verification is only available within 30 minutes of the workout.
-                    </p>
-                  {% endif %}
                 {% endif %}
-
-                {% if status_offer_id == offer.id|string %}
-                  {% if checkin_status == "success" %}
-                    <p class="mt-2 text-sm font-medium text-green-600">
-                      Check-in complete — you earned 10 coins.
-                    </p>
-                  {% elif checkin_status == "location_required" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      Verify your location before checking in.
-                    </p>
-                  {% elif checkin_status == "not_participant" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      You must join this workout before checking in.
-                    </p>
-                  {% elif checkin_status == "expired_qr" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      This QR code has expired. Ask the host to refresh the page.
-                    </p>
-                  {% elif checkin_status == "invalid_qr" %}
-                    <p class="mt-2 text-sm text-red-600">
-                      This QR code is invalid.
-                    </p>
-                  {% elif checkin_status == "already_checked_in" %}
-                    <p class="mt-2 text-sm text-neutral-600">
-                      You've already checked in for this workout.
-                    </p>
-                  {% endif %}
-                {% endif %}
-
-              {% elif participant_counts[offer.id] >= offer.max_participants %}
-                <span class="text-sm font-medium text-neutral-500">
-                  Full
-                </span>
 
               {% else %}
-                <form method="post" action="/offers/{{ offer.id }}/join">
-                  <button type="submit" class="btn btn-primary">
-                    Join workout
-                  </button>
-                </form>
+                <a href="/login" class="text-sm font-medium underline">
+                  Log in to join
+                </a>
               {% endif %}
-
-            {% else %}
-              <a href="/login" class="text-sm font-medium underline">
-                Log in to join
-              </a>
-            {% endif %}
+            </div>
           </div>
+        </article>
 
         {% else %}
-        <div class="rounded-xl border border-dashed border-neutral-300 p-8 text-center">
+        <div class="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
           <p class="font-medium">No workouts yet</p>
           <p class="mt-1 text-sm text-neutral-500">
             Create the first workout session.

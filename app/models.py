@@ -1,5 +1,3 @@
-# app/models.py — merged Part A (User, Post/Comment, Chat) + Part D (Tx, Order)
-
 from typing import Optional
 from datetime import datetime, date, timezone
 from sqlmodel import SQLModel, Field, UniqueConstraint
@@ -9,7 +7,7 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-# ---------- Part A: User ----------
+# ---------- Users ----------
 class User(SQLModel, table=True):
     __tablename__ = "users"
     __table_args__ = (UniqueConstraint("username", name="uq_username"),)
@@ -36,26 +34,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
-# ---------- Part A: Community ----------
-class Post(SQLModel, table=True):
-    __tablename__ = "posts"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    author_id: int = Field(foreign_key="users.id", index=True)
-    image_url: Optional[str] = None
-    caption: str
-    created_at: datetime = Field(default_factory=utcnow)
-
-
-class Comment(SQLModel, table=True):
-    __tablename__ = "comments"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    post_id: int = Field(foreign_key="posts.id", index=True)
-    author_id: int = Field(foreign_key="users.id", index=True)
-    content: str
-    created_at: datetime = Field(default_factory=utcnow)
-
-
-# ---------- Part A: DM ----------
+# ---------- Workout chats ----------
 class ChatRoom(SQLModel, table=True):
     __tablename__ = "chat_rooms"
 
