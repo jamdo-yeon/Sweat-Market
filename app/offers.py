@@ -286,9 +286,16 @@ def verify_location(
     request: Request,
     latitude: float = Form(...),
     longitude: float = Form(...),
+    return_to: str | None = Form(None),
     session: Session = Depends(get_session),
 ):
     user = current_user(request, session)
+
+    safe_return_to = (
+        return_to
+        if return_to and return_to.startswith("/") and not return_to.startswith("//")
+        else None
+    )
 
     if not user:
         return RedirectResponse("/login", status_code=303)
@@ -344,6 +351,12 @@ def verify_location(
 
         session.add(participant)
         session.commit()
+        if safe_return_to:
+            return RedirectResponse(
+                safe_return_to,
+                status_code=303,
+            )
+
         return RedirectResponse(
             f"/offers?location_status=verified&offer_id={offer_id}",
             status_code=303,

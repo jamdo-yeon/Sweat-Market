@@ -15,6 +15,7 @@ from .models import (
 )
 from .auth import current_user
 from .uploads import UPLOAD_URL_PREFIX, upload_directory
+from .offers import recently_verified, participants_near_each_other
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -246,6 +247,30 @@ def chat_room(
         offer.creator_id,
     )
 
+    current_participant = next(
+        (
+            participant
+            for participant in participants
+            if participant.user_id == me.id
+        ),
+        None,
+    )
+
+    location_verified = (
+        current_participant is not None
+        and recently_verified(current_participant)
+    )
+
+    qr_ready = participants_near_each_other(
+        participants,
+        host_user_id=offer.creator_id,
+    )
+
+    checked_in = (
+        current_participant is not None
+        and current_participant.checked_in
+    )
+
     messages = session.exec(
         select(Message)
         .where(Message.room_id == room_id)
@@ -275,6 +300,10 @@ def chat_room(
             "participants": participants,
             "creator": creator,
             "is_host": offer.creator_id == me.id,
+            "current_participant": current_participant,
+            "location_verified": location_verified,
+            "qr_ready": qr_ready,
+            "checked_in": checked_in,
         },
     )
 

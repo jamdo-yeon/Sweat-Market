@@ -397,11 +397,111 @@
       {% endif %}
 
 
+      <!-- Check-in -->
       <div class="mt-6 border-t border-neutral-200 pt-5">
+        <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+          Check-in
+        </p>
 
+        <div class="mt-3 space-y-3">
+
+          {% if checked_in %}
+            <div class="rounded-xl border border-green-200 bg-green-50 p-3">
+              <p class="text-sm font-semibold text-green-700">
+                ✓ Checked in
+              </p>
+              <p class="mt-1 text-xs text-green-600">
+                You earned 10 coins for this workout.
+              </p>
+            </div>
+
+          {% else %}
+
+            {% if location_verified %}
+              <div class="rounded-xl border border-green-200 bg-green-50 p-3">
+                <p class="text-sm font-medium text-green-700">
+                  ✓ Location verified
+                </p>
+                <p class="mt-1 text-xs text-green-600">
+                  Your verification is active for 10 minutes.
+                </p>
+              </div>
+            {% else %}
+              <button
+                type="button"
+                id="verify-location-btn"
+                class="btn btn-primary w-full"
+                data-offer-id="{{ offer.id }}"
+                data-return-to="/chat/{{ room.id }}"
+              >
+                Verify my location
+              </button>
+            {% endif %}
+
+
+            {% if is_host %}
+
+              {% if qr_ready %}
+                <div class="rounded-xl border border-green-200 bg-green-50 p-3">
+                  <p class="text-sm font-semibold text-green-700">
+                    ✓ Participants verified
+                  </p>
+                  <p class="mt-1 text-xs text-green-600">
+                    QR check-in is ready.
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-neutral-200 bg-white p-3">
+                  <img
+                    src="/offers/{{ offer.id }}/qr"
+                    alt="Workout check-in QR code"
+                    class="mx-auto w-full max-w-[180px]"
+                  >
+                  <p class="mt-2 text-center text-xs text-neutral-500">
+                    Participants can scan this code to check in.
+                  </p>
+                </div>
+
+              {% else %}
+                <p class="text-xs leading-5 text-neutral-500">
+                  Waiting for you and another nearby participant to verify location.
+                </p>
+              {% endif %}
+
+            {% else %}
+
+              {% if qr_ready %}
+                <div class="rounded-xl border border-neutral-200 bg-white p-3">
+                  <p class="text-sm font-medium">
+                    QR check-in ready
+                  </p>
+                  <p class="mt-1 text-xs leading-5 text-neutral-500">
+                    Scan the host's QR code to complete your check-in and earn 10 coins.
+                  </p>
+                </div>
+              {% elif location_verified %}
+                <p class="text-xs leading-5 text-neutral-500">
+                  Waiting for the host and another nearby participant to verify.
+                </p>
+              {% else %}
+                <p class="text-xs leading-5 text-neutral-500">
+                  Verify your location near the workout time to prepare for check-in.
+                </p>
+              {% endif %}
+
+            {% endif %}
+
+          {% endif %}
+
+        </div>
+      </div>
+
+
+      <!-- Workout actions -->
+      <div class="mt-6 border-t border-neutral-200 pt-5">
         <a
           href="/offers"
-          class="btn btn-primary w-full text-center"
+          class="btn btn-ghost w-full text-center"
         >
           View workout
         </a>
@@ -415,7 +515,6 @@
             You're participating in this workout.
           </p>
         {% endif %}
-
       </div>
 
     </aside>
@@ -580,6 +679,66 @@
     });
   });
 
+  // ---------------------------------------------------------
+  // Verify workout location
+  // ---------------------------------------------------------
+  const verifyLocationButton =
+    document.getElementById("verify-location-btn");
+
+  if (verifyLocationButton) {
+    verifyLocationButton.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      verifyLocationButton.disabled = true;
+      verifyLocationButton.textContent = "Checking location...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const form = document.createElement("form");
+
+          form.method = "POST";
+          form.action =
+            `/offers/${verifyLocationButton.dataset.offerId}/verify-location`;
+
+          const latitude = document.createElement("input");
+          latitude.type = "hidden";
+          latitude.name = "latitude";
+          latitude.value = position.coords.latitude;
+
+          const longitude = document.createElement("input");
+          longitude.type = "hidden";
+          longitude.name = "longitude";
+          longitude.value = position.coords.longitude;
+
+          const returnTo = document.createElement("input");
+          returnTo.type = "hidden";
+          returnTo.name = "return_to";
+          returnTo.value =
+            verifyLocationButton.dataset.returnTo;
+
+          form.appendChild(latitude);
+          form.appendChild(longitude);
+          form.appendChild(returnTo);
+
+          document.body.appendChild(form);
+          form.submit();
+        },
+
+        () => {
+          verifyLocationButton.disabled = false;
+          verifyLocationButton.textContent =
+            "Verify my location";
+
+          alert(
+            "Unable to access your location. Please allow location access."
+          );
+        }
+      );
+    });
+  }
 
   messages.scrollTop = messages.scrollHeight;
 </script>
