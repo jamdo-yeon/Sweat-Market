@@ -4,7 +4,7 @@ from sqlmodel import Session as SQLSession, select
 from datetime import datetime, timedelta, timezone
 
 from app.db import engine
-from app.models import WorkoutOffer, WorkoutParticipant
+from app.models import User, Tx, WorkoutOffer, WorkoutParticipant
 from tests.test_auth import signup
 from app.qr import create_checkin_token
 
@@ -409,3 +409,90 @@ def test_invalid_qr_token_is_rejected(client):
     assert r.headers["location"] == (
         f"/offers?checkin_status=invalid_qr&offer_id={offer_id}"
     )
+
+def test_checkin_awards_coins_only_once(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    token = create_checkin_token(offer_id)
+
+    # First scan should award the workout reward.
+    r = client.get(
+        f"/offers/{offer_id}/checkin?token={token}",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=success&offer_id={offer_id}"
+    )
+
+    with SQLSession(engine) as session:
+        user = session.exec(
+            select(User).where(User.username == user_name)
+        ).first()
+
+        assert user is not None
+        assert user.coins == 10
+
+        transactions = session.exec(
+            select(Tx).where(
+                Tx.user_id == user.id,
+                Tx.kind == "workout_reward",
+            )
+        ).all()
+
+        assert len(transactions) == 1
+        assert transactions[0].amount == 10
+
+    # Scanning the same QR again must not award coins again.
+    r = client.get(
+        f"/offers/{offer_id}/checkin?token={token}",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=already_checked_in&offer_id={offer_id}"
+    )
+
+    with SQLSession(engine) as session:
+        user = session.exec(
+            select(User).where(User.username == user_name)
+        ).first()
+
+        assert user is not None
+        assert user.coins == 10
+
+        transactions = session.exec(
+            select(Tx).where(
+                Tx.user_id == user.id,
+                Tx.kind == "workout_reward",
+            )
+        ).all()
+
+        assert len(transactions) == 1

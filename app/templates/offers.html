@@ -237,7 +237,7 @@
                 {% if status_offer_id == offer.id|string %}
                   {% if checkin_status == "success" %}
                     <p class="mt-2 text-sm font-medium text-green-600">
-                      Check-in complete.
+                      Check-in complete — you earned 10 coins.
                     </p>
                   {% elif checkin_status == "location_required" %}
                     <p class="mt-2 text-sm text-red-600">
@@ -254,6 +254,10 @@
                   {% elif checkin_status == "invalid_qr" %}
                     <p class="mt-2 text-sm text-red-600">
                       This QR code is invalid.
+                    </p>
+                  {% elif checkin_status == "already_checked_in" %}
+                    <p class="mt-2 text-sm text-neutral-600">
+                      You've already checked in for this workout.
                     </p>
                   {% endif %}
                 {% endif %}

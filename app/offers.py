@@ -9,7 +9,7 @@ from math import radians, sin, cos, sqrt, atan2
 
 from .auth import current_user
 from .db import get_session
-from .models import User, WorkoutOffer, WorkoutParticipant
+from .models import User, WorkoutOffer, WorkoutParticipant, Tx
 from itsdangerous import BadSignature, SignatureExpired
 
 from .qr import (
@@ -421,10 +421,29 @@ def checkin(
             status_code=303,
         )
 
+    if participant.checked_in:
+        return RedirectResponse(
+            f"/offers?checkin_status=already_checked_in&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    reward_coins = 10
+
     participant.checked_in = True
     participant.checked_in_at = datetime.now(timezone.utc)
 
+    user.coins += reward_coins
+
+    transaction = Tx(
+        user_id=user.id,
+        amount=reward_coins,
+        kind="workout_reward",
+        note=f"Verified workout check-in #{offer_id}",
+    )
+
     session.add(participant)
+    session.add(user)
+    session.add(transaction)
     session.commit()
 
     return RedirectResponse(
