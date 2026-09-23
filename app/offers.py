@@ -162,7 +162,9 @@ def create_offer(
         location=location.strip(),
         latitude=latitude,
         longitude=longitude,
-        scheduled_at=datetime.fromisoformat(scheduled_at),
+        scheduled_at=datetime.fromisoformat(
+            scheduled_at.replace("Z", "+00:00")
+        ),
         description=(description or "").strip() or None,
         max_participants=max_participants,
     )
@@ -286,14 +288,16 @@ def verify_location(
     if not participant:
         return RedirectResponse("/offers", status_code=303)
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     scheduled_at = offer.scheduled_at
 
-    if scheduled_at.tzinfo is not None:
-        scheduled_at = scheduled_at.replace(tzinfo=None)
+    if scheduled_at.tzinfo is None:
+        scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
 
-    seconds_from_workout = abs((now - scheduled_at).total_seconds())
+    seconds_from_workout = abs(
+        (now - scheduled_at).total_seconds()
+    )
 
     if seconds_from_workout > 30 * 60:
         return RedirectResponse(

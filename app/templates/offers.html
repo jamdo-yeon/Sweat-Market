@@ -19,7 +19,7 @@
       <h2 class="text-lg font-semibold">Create workout</h2>
 
       {% if user %}
-      <form method="post" action="/offers" class="mt-4 space-y-4">
+      <form method="post" action="/offers" id="create-workout-form" class="mt-4 space-y-4">
 
         <div>
           <label class="mb-1 block text-sm font-medium">Sport</label>
@@ -48,11 +48,19 @@
 
         <div>
           <label class="mb-1 block text-sm font-medium">Date & time</label>
+
           <input
             type="datetime-local"
-            name="scheduled_at"
+            name="scheduled_at_local"
+            id="scheduled-at-local"
             required
             class="input w-full"
+          >
+
+          <input
+            type="hidden"
+            name="scheduled_at"
+            id="scheduled-at"
           >
         </div>
 
@@ -385,6 +393,26 @@
       );
     });
   });
+</script>
+
+<script>
+  const workoutForm = document.getElementById("create-workout-form");
+  const localTimeInput = document.getElementById("scheduled-at-local");
+  const utcTimeInput = document.getElementById("scheduled-at");
+
+  if (workoutForm) {
+    workoutForm.addEventListener("submit", () => {
+      const localValue = localTimeInput.value;
+
+      if (!localValue) {
+        return;
+      }
+
+      const localDate = new Date(localValue);
+
+      utcTimeInput.value = localDate.toISOString();
+    });
+  }
 </script>
 
 {% endblock %}

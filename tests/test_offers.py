@@ -198,8 +198,8 @@ def test_location_verification_succeeds_near_workout_time(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -242,8 +242,8 @@ def test_location_verification_rejected_outside_time_window(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(hours=2)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(hours=2)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -275,8 +275,8 @@ def test_verified_participant_can_check_in(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -329,8 +329,8 @@ def test_unverified_participant_cannot_check_in(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -415,8 +415,8 @@ def test_checkin_awards_coins_only_once(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -502,8 +502,8 @@ def test_qr_available_when_verified_participants_are_near_each_other(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -559,8 +559,8 @@ def test_qr_blocked_when_verified_participants_are_far_apart(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
@@ -628,8 +628,8 @@ def test_logged_out_qr_scan_preserves_token_through_login(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now() + timedelta(minutes=5)
-    ).isoformat(timespec="minutes")
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
 
     offer_id = _create_offer(
         client,
