@@ -1,6 +1,7 @@
 import uuid
 
 from sqlmodel import Session as SQLSession, select
+from datetime import datetime, timedelta, timezone
 
 from app.db import engine
 from app.models import WorkoutOffer, WorkoutParticipant
@@ -12,7 +13,11 @@ def _unique_user():
     return f"user_{token}", f"{token}@test.com"
 
 
-def _create_offer(client, max_participants=3):
+def _create_offer(
+        client, 
+        max_participants=3,
+        scheduled_at="2026-09-25T18:00",
+    ):
     r = client.post(
         "/offers",
         data={
@@ -20,7 +25,7 @@ def _create_offer(client, max_participants=3):
             "location": "Simon Fraser University — Burnaby, BC",
             "latitude": "49.2781",
             "longitude": "-122.9199",
-            "scheduled_at": "2026-09-25T18:00",
+            "scheduled_at": scheduled_at,
             "description": "Evening run",
             "max_participants": str(max_participants),
         },
@@ -186,3 +191,80 @@ def test_create_offer_requires_valid_location(client):
     with SQLSession(engine) as session:
         offer = session.exec(select(WorkoutOffer)).first()
         assert offer is None
+
+def test_location_verification_succeeds_near_workout_time(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).replace(tzinfo=None).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    r = client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?location_status=verified&offer_id={offer_id}"
+    )
+
+    with SQLSession(engine) as session:
+        participant = session.exec(
+            select(WorkoutParticipant).where(
+                WorkoutParticipant.offer_id == offer_id,
+                WorkoutParticipant.user_id != 1,
+            )
+        ).first()
+
+        assert participant is not None
+        assert participant.location_verified_at is not None
+
+def test_location_verification_rejected_outside_time_window(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(hours=2)
+    ).replace(tzinfo=None).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    r = client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?location_status=wrong_time&offer_id={offer_id}"
+    )
