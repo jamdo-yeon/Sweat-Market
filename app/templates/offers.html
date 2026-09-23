@@ -150,9 +150,45 @@
             {% if user %}
 
               {% if offer.creator_id == user.id %}
-                <span class="text-sm font-medium text-neutral-500">
-                  Your workout
-                </span>
+                <div class="space-y-2">
+                  <p class="text-sm font-medium text-neutral-500">
+                    Your workout
+                  </p>
+
+                  <button
+                    type="button"
+                    class="btn btn-primary verify-location-btn"
+                    data-offer-id="{{ offer.id }}"
+                  >
+                    Verify my location
+                  </button>
+
+                  {% if offer.id in qr_ready_offer_ids %}
+                    <p class="text-sm font-medium text-green-600">
+                      Participants verified — QR check-in ready.
+                    </p>
+                  {% else %}
+                    <p class="text-sm text-neutral-500">
+                      Waiting for at least 2 nearby participants to verify.
+                    </p>
+                  {% endif %}
+
+                  {% if status_offer_id == offer.id|string %}
+                    {% if location_status == "verified" %}
+                      <p class="text-sm text-green-600">
+                        Location verified.
+                      </p>
+                    {% elif location_status == "too_far" %}
+                      <p class="text-sm text-red-600">
+                        You're too far from the workout location.
+                      </p>
+                    {% elif location_status == "wrong_time" %}
+                      <p class="text-sm text-red-600">
+                        Location verification is only available within 30 minutes of the workout.
+                      </p>
+                    {% endif %}
+                  {% endif %}
+                </div>
               {% elif offer.id in joined_offer_ids %}
                 <div class="flex flex-wrap gap-2">
                   <button
