@@ -164,9 +164,17 @@
                   </button>
 
                   {% if offer.id in qr_ready_offer_ids %}
-                    <p class="text-sm font-medium text-green-600">
-                      Participants verified — QR check-in ready.
-                    </p>
+                    <div class="space-y-2">
+                      <p class="text-sm font-medium text-green-600">
+                        Participants verified — QR check-in ready.
+                      </p>
+
+                      <img
+                        src="/offers/{{ offer.id }}/qr"
+                        alt="Workout check-in QR code"
+                        class="h-48 w-48 rounded-lg border border-neutral-200 bg-white p-2"
+                      >
+                    </div>
                   {% else %}
                     <p class="text-sm text-neutral-500">
                       Waiting for at least 2 nearby participants to verify.

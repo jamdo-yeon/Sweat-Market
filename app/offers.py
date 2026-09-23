@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import os
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from math import radians, sin, cos, sqrt, atan2
@@ -10,6 +10,7 @@ from math import radians, sin, cos, sqrt, atan2
 from .auth import current_user
 from .db import get_session
 from .models import User, WorkoutOffer, WorkoutParticipant
+from .qr import qr_png_bytes
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -296,4 +297,42 @@ def verify_location(
     return RedirectResponse(
         f"/offers?location_status=too_far&offer_id={offer_id}",
         status_code=303,
+    )
+
+@router.get("/offers/{offer_id}/qr")
+def workout_qr(
+    offer_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    user = current_user(request, session)
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    offer = session.get(WorkoutOffer, offer_id)
+
+    if not offer or offer.creator_id != user.id:
+        return RedirectResponse("/offers", status_code=303)
+
+    participants = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id
+        )
+    ).all()
+
+    verified_count = sum(
+        1
+        for participant in participants
+        if recently_verified(participant)
+    )
+
+    if verified_count < 2:
+        return RedirectResponse("/offers", status_code=303)
+
+    payload = f"sweatmarket://checkin/{offer_id}"
+
+    return Response(
+        content=qr_png_bytes(payload),
+        media_type="image/png",
     )
