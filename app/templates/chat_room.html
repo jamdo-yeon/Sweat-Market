@@ -1,105 +1,507 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
+<div class="mx-auto max-w-7xl">
 
+  <!-- Page heading -->
   <div class="mb-6">
-    <a href="/chat" class="text-sm text-gray-500 hover:text-gray-700">
-      ← Back to chats
-    </a>
-
-    <h1 class="text-2xl font-bold mt-2">
-      {{ offer.title }}
-    </h1>
-
-    <p class="text-sm text-gray-500">
-      Workout group chat
+    <h1 class="text-3xl font-bold tracking-tight">Chat</h1>
+    <p class="mt-1 text-sm text-neutral-500">
+      Message your workout partners and coordinate your sessions.
     </p>
   </div>
 
+  <!-- Main chat layout -->
   <div
-    id="messages"
-    class="border rounded-lg p-4 h-96 overflow-y-auto space-y-3 bg-white"
+    class="grid min-h-[650px] overflow-hidden rounded-2xl border border-neutral-200 bg-white
+           lg:grid-cols-[260px_minmax(0,1fr)_280px]"
   >
-    {% for message in messages %}
-      {% set sender = senders.get(message.sender_id) %}
 
-      <div>
-        <div class="text-xs text-gray-500">
-          {% if sender %}
-            {{ sender.nickname or sender.username }}
-          {% else %}
-            Unknown user
-          {% endif %}
+    <!-- ===================================================== -->
+    <!-- LEFT: WORKOUT CONVERSATIONS -->
+    <!-- ===================================================== -->
+    <aside class="border-b border-neutral-200 lg:border-b-0 lg:border-r">
+
+      <div class="border-b border-neutral-200 p-4">
+        <h2 class="font-semibold">Workout chats</h2>
+
+        <div class="relative mt-3">
+          <input
+            id="chat-search"
+            type="text"
+            placeholder="Search workouts..."
+            class="input w-full pl-9 text-sm"
+          >
+
+          <svg
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div id="conversation-list" class="max-h-64 overflow-y-auto lg:max-h-[590px]">
+
+        {% for conversation in conversations %}
+          {% set conversation_room = conversation.room %}
+          {% set conversation_offer = conversation.offer %}
+
+          <a
+            href="/chat/{{ conversation_room.id }}"
+            data-workout-title="{{ conversation_offer.title|lower }}"
+            class="conversation-item block border-b border-neutral-100 p-4 transition hover:bg-neutral-50
+              {% if conversation_room.id == room.id %}bg-neutral-100{% endif %}"
+          >
+            <div class="flex gap-3">
+
+              <!-- Sport icon -->
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-sm font-semibold text-white"
+              >
+                {{ conversation_offer.sport[0]|upper }}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold">
+                  {{ conversation_offer.title }}
+                </p>
+
+                {% if conversation.last_message %}
+                  <p class="mt-1 truncate text-xs text-neutral-500">
+                    {% if conversation.last_message.sender_id == user.id %}
+                      You:
+                    {% elif conversation.last_sender %}
+                      {{ conversation.last_sender.nickname or conversation.last_sender.username }}:
+                    {% endif %}
+
+                    {% if conversation.last_message.content %}
+                      {{ conversation.last_message.content }}
+                    {% elif conversation.last_message.image_url %}
+                      Sent an image
+                    {% endif %}
+                  </p>
+
+                  <time
+                    class="conversation-time mt-1 block text-xs text-neutral-400"
+                    datetime="{{ conversation.last_message.created_at.isoformat() }}{% if conversation.last_message.created_at.tzinfo is none %}Z{% endif %}"
+                  >
+                    {{ conversation.last_message.created_at.strftime('%I:%M %p') }}
+                  </time>
+
+                {% else %}
+                  <p class="mt-1 truncate text-xs capitalize text-neutral-500">
+                    {{ conversation_offer.sport }}
+                  </p>
+
+                  <p class="mt-1 text-xs text-neutral-400">
+                    No messages yet
+                  </p>
+                {% endif %}
+              </div>
+
+            </div>
+          </a>
+
+        {% else %}
+
+          <div class="p-5 text-sm text-neutral-500">
+            No workout chats yet.
+          </div>
+
+        {% endfor %}
+
+      </div>
+    </aside>
+
+
+    <!-- ===================================================== -->
+    <!-- CENTER: ACTIVE CHAT -->
+    <!-- ===================================================== -->
+    <section class="flex min-h-[650px] min-w-0 flex-col">
+
+      <!-- Chat header -->
+      <div class="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+
+        <div class="flex min-w-0 items-center gap-3">
+
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black font-semibold text-white"
+          >
+            {{ offer.sport[0]|upper }}
+          </div>
+
+          <div class="min-w-0">
+            <h2 class="truncate font-semibold">
+              {{ offer.title }}
+            </h2>
+
+            <p class="text-xs text-neutral-500">
+              {{ participants|length }}/{{ offer.max_participants }} joined
+              ·
+              <span class="capitalize">{{ offer.sport }}</span>
+            </p>
+          </div>
+
         </div>
 
-        {% if message.content %}
-          <div class="bg-gray-100 rounded-lg px-3 py-2 inline-block">
-            {{ message.content }}
+        <a
+          href="/offers"
+          class="hidden rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium
+                 transition hover:bg-neutral-50 sm:block"
+        >
+          View workout
+        </a>
+
+      </div>
+
+
+      <!-- Messages -->
+      <div
+        id="messages"
+        class="flex-1 space-y-5 overflow-y-auto bg-neutral-50/40 p-5"
+      >
+
+        {% if messages|length == 0 %}
+          <div
+            id="empty-chat"
+            class="flex h-full min-h-[350px] items-center justify-center text-center"
+          >
+            <div>
+              <div
+                class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"
+              >
+                💬
+              </div>
+
+              <p class="mt-3 text-sm font-medium">
+                Start the conversation
+              </p>
+
+              <p class="mt-1 text-xs text-neutral-500">
+                Coordinate the workout with your group.
+              </p>
+            </div>
           </div>
         {% endif %}
 
-        {% if message.image_url %}
-          <img
-            src="{{ message.image_url }}"
-            class="max-w-xs rounded-lg mt-1"
-            alt="Chat image"
+
+        {% for message in messages %}
+          {% set sender = senders.get(message.sender_id) %}
+          {% set mine = message.sender_id == user.id %}
+
+          <div
+            class="message-row flex {% if mine %}justify-end{% else %}justify-start{% endif %}"
           >
-        {% endif %}
+            <div class="max-w-[75%]">
+
+              {% if not mine %}
+                <p class="mb-1 px-1 text-xs text-neutral-500">
+                  {% if sender %}
+                    {{ sender.nickname or sender.username }}
+                  {% else %}
+                    Unknown user
+                  {% endif %}
+                </p>
+              {% endif %}
+
+              {% if message.content %}
+                <div
+                  class="rounded-2xl px-4 py-2.5 text-sm
+                    {% if mine %}
+                      rounded-br-md bg-black text-white
+                    {% else %}
+                      rounded-bl-md bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200
+                    {% endif %}"
+                >
+                  {{ message.content }}
+                </div>
+              {% endif %}
+
+              {% if message.image_url %}
+                <img
+                  src="{{ message.image_url }}"
+                  alt="Chat image"
+                  class="mt-1 max-w-xs rounded-2xl border border-neutral-200"
+                >
+              {% endif %}
+
+              <p
+                class="mt-1 px-1 text-[11px] text-neutral-400
+                       {% if mine %}text-right{% endif %}"
+              >
+                <time
+                  class="message-time"
+                  datetime="{{ message.created_at.isoformat() }}{% if message.created_at.tzinfo is none %}Z{% endif %}"
+                >
+                  {{ message.created_at.strftime('%I:%M %p') }}
+                </time>
+              </p>
+
+            </div>
+          </div>
+        {% endfor %}
+
       </div>
-    {% endfor %}
+
+
+      <!-- Message composer -->
+      <div class="border-t border-neutral-200 bg-white p-4">
+
+        <form id="message-form" class="flex items-center gap-2">
+
+          <input
+            id="message-input"
+            type="text"
+            placeholder="Message your workout group..."
+            autocomplete="off"
+            class="input min-w-0 flex-1"
+          >
+
+          <button
+            type="submit"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-black text-white
+                   transition hover:bg-neutral-800"
+            aria-label="Send message"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="m5 12 14-7-4 14-3-6-7-1Z"
+              />
+            </svg>
+          </button>
+
+        </form>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================== -->
+    <!-- RIGHT: WORKOUT DETAILS -->
+    <!-- ===================================================== -->
+    <aside
+      class="border-t border-neutral-200 bg-neutral-50/50 p-5
+             lg:border-l lg:border-t-0"
+    >
+
+      <h2 class="text-sm font-semibold">
+        Workout details
+      </h2>
+
+      <div class="mt-5">
+
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-lg font-semibold text-white"
+        >
+          {{ offer.sport[0]|upper }}
+        </div>
+
+        <h3 class="mt-3 font-semibold">
+          {{ offer.title }}
+        </h3>
+
+        <p class="mt-1 text-sm capitalize text-neutral-500">
+          {{ offer.sport }}
+        </p>
+
+      </div>
+
+
+      <div class="mt-6 space-y-4 text-sm">
+
+        <!-- Participants -->
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            Participants
+          </p>
+
+          <p class="mt-1 font-medium">
+            {{ participants|length }}/{{ offer.max_participants }} joined
+          </p>
+        </div>
+
+
+        <!-- Location -->
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            Location
+          </p>
+
+          <p class="mt-1 text-neutral-700">
+            {{ offer.location }}
+          </p>
+        </div>
+
+
+        <!-- Time -->
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            When
+          </p>
+
+          <time
+            class="workout-time mt-1 block text-neutral-700"
+            datetime="{{ offer.scheduled_at.isoformat() }}{% if offer.scheduled_at.tzinfo is none %}Z{% endif %}"
+          >
+            {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }}
+          </time>
+        </div>
+
+
+        <!-- Creator -->
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            Created by
+          </p>
+
+          <p class="mt-1 text-neutral-700">
+            {% if creator %}
+              {{ creator.nickname or creator.username }}
+            {% else %}
+              Unknown user
+            {% endif %}
+          </p>
+        </div>
+
+      </div>
+
+
+      {% if offer.description %}
+        <div class="mt-6 border-t border-neutral-200 pt-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">
+            About
+          </p>
+
+          <p class="mt-2 text-sm leading-6 text-neutral-600">
+            {{ offer.description }}
+          </p>
+        </div>
+      {% endif %}
+
+
+      <div class="mt-6 border-t border-neutral-200 pt-5">
+
+        <a
+          href="/offers"
+          class="btn btn-primary w-full text-center"
+        >
+          View workout
+        </a>
+
+        {% if is_host %}
+          <p class="mt-3 text-center text-xs text-neutral-500">
+            You're hosting this workout.
+          </p>
+        {% else %}
+          <p class="mt-3 text-center text-xs text-neutral-500">
+            You're participating in this workout.
+          </p>
+        {% endif %}
+
+      </div>
+
+    </aside>
+
   </div>
-
-  <form id="message-form" class="flex gap-2 mt-4">
-    <input
-      id="message-input"
-      type="text"
-      placeholder="Message your workout group..."
-      autocomplete="off"
-      class="flex-1 border rounded-lg px-3 py-2"
-    >
-
-    <button
-      type="submit"
-      class="bg-black text-white px-4 py-2 rounded-lg"
-    >
-      Send
-    </button>
-  </form>
-
 </div>
+
 
 <script>
   const messages = document.getElementById("messages");
   const form = document.getElementById("message-form");
   const input = document.getElementById("message-input");
+  const emptyChat = document.getElementById("empty-chat");
+
+  const currentUserId = Number("{{ user.id }}");
 
   const protocol =
     window.location.protocol === "https:" ? "wss" : "ws";
 
+  const roomId = Number("{{ room.id }}");
+
   const socket = new WebSocket(
-    `${protocol}://${window.location.host}/ws/chat/{{ room.id }}`
+    `${protocol}://${window.location.host}/ws/chat/${roomId}`
   );
 
+
+  // ---------------------------------------------------------
+  // Receive live messages
+  // ---------------------------------------------------------
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
-    if (data.type === "text") {
-      const wrapper = document.createElement("div");
-
-      const message = document.createElement("div");
-      message.className =
-        "bg-gray-100 rounded-lg px-3 py-2 inline-block";
-
-      message.textContent = data.content;
-
-      wrapper.appendChild(message);
-      messages.appendChild(wrapper);
-
-      messages.scrollTop = messages.scrollHeight;
+    if (data.type !== "text") {
+      return;
     }
+
+    if (emptyChat) {
+      emptyChat.remove();
+    }
+
+    const mine =
+      Number(data.sender_id) === Number(currentUserId);
+
+    const row = document.createElement("div");
+
+    row.className =
+      `message-row flex ${mine ? "justify-end" : "justify-start"}`;
+
+    const container = document.createElement("div");
+    container.className = "max-w-[75%]";
+
+    const bubble = document.createElement("div");
+
+    bubble.className = mine
+      ? "rounded-2xl rounded-br-md bg-black px-4 py-2.5 text-sm text-white"
+      : "rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-sm text-neutral-900 shadow-sm ring-1 ring-neutral-200";
+
+    bubble.textContent = data.content;
+
+    const time = document.createElement("p");
+
+    time.className =
+      `mt-1 px-1 text-[11px] text-neutral-400 ${
+        mine ? "text-right" : ""
+      }`;
+
+    time.textContent = new Date(
+      data.created_at
+    ).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    container.appendChild(bubble);
+    container.appendChild(time);
+
+    row.appendChild(container);
+    messages.appendChild(row);
+
+    messages.scrollTop = messages.scrollHeight;
   };
 
+
+  // ---------------------------------------------------------
+  // Send message
+  // ---------------------------------------------------------
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -109,15 +511,77 @@
       return;
     }
 
+    if (socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
     socket.send(
       JSON.stringify({
-        content: content
+        content: content,
       })
     );
 
     input.value = "";
+    input.focus();
   });
+
+
+  // ---------------------------------------------------------
+  // Workout chat search
+  // ---------------------------------------------------------
+  const search = document.getElementById("chat-search");
+
+  search.addEventListener("input", () => {
+    const query = search.value.toLowerCase().trim();
+
+    document
+      .querySelectorAll(".conversation-item")
+      .forEach((conversation) => {
+        const title =
+          conversation.dataset.workoutTitle || "";
+
+        conversation.style.display =
+          title.includes(query) ? "" : "none";
+      });
+  });
+
+
+  // ---------------------------------------------------------
+  // Convert UTC timestamps to user's local timezone
+  // ---------------------------------------------------------
+  document.querySelectorAll(".workout-time").forEach((element) => {
+    const date = new Date(element.dateTime);
+
+    element.textContent = date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  });
+
+
+  document.querySelectorAll(".message-time").forEach((element) => {
+    const date = new Date(element.dateTime);
+
+    element.textContent = date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  });
+
+  document.querySelectorAll(".conversation-time").forEach((element) => {
+    const date = new Date(element.dateTime);
+
+    element.textContent = date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  });
+
 
   messages.scrollTop = messages.scrollHeight;
 </script>
+
 {% endblock %}

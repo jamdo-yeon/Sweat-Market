@@ -80,20 +80,13 @@ def get_or_create_room(
 
     return room
 
-
-@router.get("/chat")
-def chat_list(
-    request: Request,
-    session: Session = Depends(get_session),
+def get_user_conversations(
+    session: Session,
+    user_id: int,
 ):
-    me = current_user(request, session)
-
-    if not me:
-        return RedirectResponse("/login", status_code=303)
-
     participations = session.exec(
         select(WorkoutParticipant).where(
-            WorkoutParticipant.user_id == me.id
+            WorkoutParticipant.user_id == user_id
         )
     ).all()
 
@@ -113,12 +106,54 @@ def chat_list(
             offer.id,
         )
 
+        last_message = session.exec(
+            select(Message)
+            .where(Message.room_id == room.id)
+            .order_by(Message.created_at.desc())
+        ).first()
+
+        last_sender = None
+
+        if last_message:
+            last_sender = session.get(
+                User,
+                last_message.sender_id,
+            )
+
         conversations.append(
             {
                 "room": room,
                 "offer": offer,
+                "last_message": last_message,
+                "last_sender": last_sender,
             }
         )
+
+    conversations.sort(
+        key=lambda conversation:
+            conversation["last_message"].created_at
+            if conversation["last_message"]
+            else conversation["room"].created_at,
+        reverse=True,
+    )
+
+    return conversations
+
+
+@router.get("/chat")
+def chat_list(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    me = current_user(request, session)
+
+    if not me:
+        return RedirectResponse("/login", status_code=303)
+
+    conversations = get_user_conversations(
+        session,
+        me.id,
+    )
 
     return templates.TemplateResponse(
         request,
@@ -193,6 +228,24 @@ def chat_room(
         room.offer_id,
     )
 
+    # All workout chats this user belongs to
+    conversations = get_user_conversations(
+        session,
+        me.id,
+    )
+
+    # Participants in the currently selected workout
+    participants = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer.id
+        )
+    ).all()
+
+    creator = session.get(
+        User,
+        offer.creator_id,
+    )
+
     messages = session.exec(
         select(Message)
         .where(Message.room_id == room_id)
@@ -218,6 +271,10 @@ def chat_room(
             "offer": offer,
             "messages": messages,
             "senders": senders,
+            "conversations": conversations,
+            "participants": participants,
+            "creator": creator,
+            "is_host": offer.creator_id == me.id,
         },
     )
 
