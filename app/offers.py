@@ -332,11 +332,11 @@ def workout_qr(
         return RedirectResponse("/offers", status_code=303)
 
     payload = str(
-    request.url_for(
-        "checkin",
-        offer_id=offer_id,
+        request.url_for(
+            "checkin",
+            offer_id=offer_id,
+        )
     )
-)
 
     return Response(
         content=qr_png_bytes(payload),
