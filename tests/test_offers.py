@@ -866,3 +866,50 @@ def test_qr_response_is_not_cached(client):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["content-type"] == "image/png"
+
+def test_qr_token_cannot_be_used_for_different_offer(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
+
+    offer_1_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    offer_2_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+
+    client.post(f"/offers/{offer_2_id}/join")
+
+    client.post(
+        f"/offers/{offer_2_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    # Token is valid, but it belongs to offer 1.
+    token = create_checkin_token(offer_1_id)
+
+    r = client.get(
+        f"/offers/{offer_2_id}/checkin?token={token}",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=invalid_qr&offer_id={offer_2_id}"
+    )
