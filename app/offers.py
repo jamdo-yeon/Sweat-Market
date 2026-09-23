@@ -10,7 +10,13 @@ from math import radians, sin, cos, sqrt, atan2
 from .auth import current_user
 from .db import get_session
 from .models import User, WorkoutOffer, WorkoutParticipant
-from .qr import qr_png_bytes
+from itsdangerous import BadSignature, SignatureExpired
+
+from .qr import (
+    create_checkin_token,
+    qr_png_bytes,
+    verify_checkin_token,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -331,12 +337,14 @@ def workout_qr(
     if verified_count < 2:
         return RedirectResponse("/offers", status_code=303)
 
+    token = create_checkin_token(offer_id)
+
     payload = str(
         request.url_for(
             "checkin",
             offer_id=offer_id,
         )
-    )
+    ) + f"?token={token}"
 
     return Response(
         content=qr_png_bytes(payload),
@@ -347,6 +355,7 @@ def workout_qr(
 def checkin(
     offer_id: int,
     request: Request,
+    token: str | None = None,
     session: Session = Depends(get_session),
 ):
     user = current_user(request, session)
@@ -354,6 +363,31 @@ def checkin(
     if not user:
         return RedirectResponse(
             f"/login?next=/offers/{offer_id}/checkin",
+            status_code=303,
+        )
+
+    if not token:
+        return RedirectResponse(
+            f"/offers?checkin_status=invalid_qr&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    try:
+        token_data = verify_checkin_token(token)
+    except SignatureExpired:
+        return RedirectResponse(
+            f"/offers?checkin_status=expired_qr&offer_id={offer_id}",
+            status_code=303,
+        )
+    except BadSignature:
+        return RedirectResponse(
+            f"/offers?checkin_status=invalid_qr&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    if token_data.get("offer_id") != offer_id:
+        return RedirectResponse(
+            f"/offers?checkin_status=invalid_qr&offer_id={offer_id}",
             status_code=303,
         )
 

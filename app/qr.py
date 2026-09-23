@@ -1,6 +1,12 @@
 from io import BytesIO
+import os
 
 import qrcode
+from itsdangerous import URLSafeTimedSerializer
+
+
+QR_SECRET = os.getenv("SECRET_KEY", "dev-secret-change-me")
+QR_SALT = "workout-checkin"
 
 
 def qr_png_bytes(payload: str) -> bytes:
@@ -13,9 +19,34 @@ def qr_png_bytes(payload: str) -> bytes:
     qr.add_data(payload)
     qr.make(fit=True)
 
-    image = qr.make_image(fill_color="black", back_color="white")
+    image = qr.make_image(
+        fill_color="black",
+        back_color="white",
+    )
 
     buffer = BytesIO()
     image.save(buffer, format="PNG")
 
     return buffer.getvalue()
+
+
+def create_checkin_token(offer_id: int) -> str:
+    serializer = URLSafeTimedSerializer(QR_SECRET)
+
+    return serializer.dumps(
+        {"offer_id": offer_id},
+        salt=QR_SALT,
+    )
+
+
+def verify_checkin_token(
+    token: str,
+    max_age_seconds: int = 15 * 60,
+):
+    serializer = URLSafeTimedSerializer(QR_SECRET)
+
+    return serializer.loads(
+        token,
+        salt=QR_SALT,
+        max_age=max_age_seconds,
+    )

@@ -247,6 +247,14 @@
                     <p class="mt-2 text-sm text-red-600">
                       You must join this workout before checking in.
                     </p>
+                  {% elif checkin_status == "expired_qr" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      This QR code has expired. Ask the host to refresh the page.
+                    </p>
+                  {% elif checkin_status == "invalid_qr" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      This QR code is invalid.
+                    </p>
                   {% endif %}
                 {% endif %}
 

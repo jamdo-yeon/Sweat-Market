@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from app.db import engine
 from app.models import WorkoutOffer, WorkoutParticipant
 from tests.test_auth import signup
+from app.qr import create_checkin_token
 
 
 def _unique_user():
@@ -281,6 +282,7 @@ def test_verified_participant_can_check_in(client):
         client,
         scheduled_at=scheduled_at,
     )
+    token = create_checkin_token(offer_id)
 
     client.get("/logout")
 
@@ -298,7 +300,7 @@ def test_verified_participant_can_check_in(client):
     )
 
     r = client.get(
-        f"/offers/{offer_id}/checkin",
+        f"/offers/{offer_id}/checkin?token={token}",
         follow_redirects=False,
     )
 
@@ -334,6 +336,7 @@ def test_unverified_participant_cannot_check_in(client):
         client,
         scheduled_at=scheduled_at,
     )
+    token = create_checkin_token(offer_id)
 
     client.get("/logout")
 
@@ -342,7 +345,7 @@ def test_unverified_participant_cannot_check_in(client):
     client.post(f"/offers/{offer_id}/join")
 
     r = client.get(
-        f"/offers/{offer_id}/checkin",
+        f"/offers/{offer_id}/checkin?token={token}",
         follow_redirects=False,
     )
 
@@ -368,6 +371,7 @@ def test_non_participant_cannot_check_in(client):
     signup(client, username=creator_name, email=creator_email)
 
     offer_id = _create_offer(client)
+    token = create_checkin_token(offer_id)
 
     client.get("/logout")
 
@@ -375,7 +379,7 @@ def test_non_participant_cannot_check_in(client):
     signup(client, username=outsider_name, email=outsider_email)
 
     r = client.get(
-        f"/offers/{offer_id}/checkin",
+        f"/offers/{offer_id}/checkin?token={token}",
         follow_redirects=False,
     )
 
@@ -384,3 +388,24 @@ def test_non_participant_cannot_check_in(client):
         f"/offers?checkin_status=not_participant&offer_id={offer_id}"
     )
 
+def test_invalid_qr_token_is_rejected(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    offer_id = _create_offer(client)
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    r = client.get(
+        f"/offers/{offer_id}/checkin?token=invalid-token",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=invalid_qr&offer_id={offer_id}"
+    )
