@@ -1,7 +1,7 @@
 import uuid
 
 from sqlmodel import Session as SQLSession, select
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.db import engine
 from app.models import WorkoutOffer, WorkoutParticipant
@@ -268,3 +268,119 @@ def test_location_verification_rejected_outside_time_window(client):
     assert r.headers["location"] == (
         f"/offers?location_status=wrong_time&offer_id={offer_id}"
     )
+
+def test_verified_participant_can_check_in(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+        follow_redirects=False,
+    )
+
+    r = client.get(
+        f"/offers/{offer_id}/checkin",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=success&offer_id={offer_id}"
+    )
+
+    with SQLSession(engine) as session:
+        participants = session.exec(
+            select(WorkoutParticipant).where(
+                WorkoutParticipant.offer_id == offer_id
+            )
+        ).all()
+
+        checked_in_participant = next(
+            p for p in participants
+            if p.checked_in
+        )
+
+        assert checked_in_participant.checked_in is True
+        assert checked_in_participant.checked_in_at is not None
+
+def test_unverified_participant_cannot_check_in(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    client.get("/logout")
+
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+    client.post(f"/offers/{offer_id}/join")
+
+    r = client.get(
+        f"/offers/{offer_id}/checkin",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=location_required&offer_id={offer_id}"
+    )
+
+    with SQLSession(engine) as session:
+        participants = session.exec(
+            select(WorkoutParticipant).where(
+                WorkoutParticipant.offer_id == offer_id
+            )
+        ).all()
+
+        assert all(
+            participant.checked_in is False
+            for participant in participants
+        )
+
+def test_non_participant_cannot_check_in(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    offer_id = _create_offer(client)
+
+    client.get("/logout")
+
+    outsider_name, outsider_email = _unique_user()
+    signup(client, username=outsider_name, email=outsider_email)
+
+    r = client.get(
+        f"/offers/{offer_id}/checkin",
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?checkin_status=not_participant&offer_id={offer_id}"
+    )
+
