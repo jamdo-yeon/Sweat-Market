@@ -22,6 +22,7 @@ def _create_offer(
     r = client.post(
         "/offers",
         data={
+            "title": "Test Workout",
             "sport": "running",
             "location": "Simon Fraser University — Burnaby, BC",
             "latitude": "49.2781",
@@ -46,6 +47,7 @@ def test_create_offer_requires_login(client):
     r = client.post(
         "/offers",
         data={
+            "title": "Evening Run",
             "sport": "running",
             "location": "Simon Fraser University — Burnaby, BC",
             "latitude": "49.2781",
@@ -178,6 +180,7 @@ def test_create_offer_requires_valid_location(client):
     r = client.post(
         "/offers",
         data={
+            "title": "Evening Run",
             "sport": "running",
             "location": "Random typed text",
             "scheduled_at": "2026-09-25T18:00",

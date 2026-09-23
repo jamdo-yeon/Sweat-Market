@@ -107,6 +107,7 @@ class WorkoutOffer(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     creator_id: int = Field(foreign_key="users.id", index=True)
 
+    title: str
     sport: str
     location: str
     latitude: Optional[float] = None

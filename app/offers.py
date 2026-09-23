@@ -156,6 +156,7 @@ def offers_page(
 @router.post("/offers")
 def create_offer(
     request: Request,
+    title: str = Form(...),
     sport: str = Form(...),
     location: str = Form(...),
     latitude: float | None = Form(None),
@@ -175,6 +176,7 @@ def create_offer(
 
     offer = WorkoutOffer(
         creator_id=user.id,
+        title=title.strip(),
         sport=sport.strip(),
         location=location.strip(),
         latitude=latitude,
