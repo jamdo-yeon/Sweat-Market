@@ -808,3 +808,61 @@ def test_future_location_verification_is_not_valid(client):
     from app.offers import recently_verified
 
     assert recently_verified(participant) is False
+
+def test_qr_response_is_not_cached(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+        max_participants=2,
+    )
+
+    # Host verifies location
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+        },
+    )
+
+    client.get("/logout")
+
+    # Second participant joins and verifies nearby
+    user_name, user_email = _unique_user()
+    signup(client, username=user_name, email=user_email)
+
+    client.post(f"/offers/{offer_id}/join")
+
+    client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2782",
+            "longitude": "-122.9199",
+        },
+    )
+
+    # Return to host
+    client.get("/logout")
+
+    login(
+        client,
+        username=creator_name,
+        email=creator_email,
+        password="Passw0rd!",
+    )
+
+    response = client.get(
+        f"/offers/{offer_id}/qr",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-type"] == "image/png"

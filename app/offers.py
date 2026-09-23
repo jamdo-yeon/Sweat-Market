@@ -392,6 +392,9 @@ def workout_qr(
     return Response(
         content=qr_png_bytes(payload),
         media_type="image/png",
+        headers={
+            "Cache-Control": "no-store",
+        },
     )
 
 @router.get("/offers/{offer_id}/checkin")
