@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from app.db import engine
 from app.models import User, Tx, WorkoutOffer, WorkoutParticipant
 from tests.test_auth import signup, login
-from app.qr import create_checkin_token
+from app.qr import create_checkin_token, verify_checkin_token
 
 
 def _unique_user():
@@ -913,3 +913,17 @@ def test_qr_token_cannot_be_used_for_different_offer(client):
     assert r.headers["location"] == (
         f"/offers?checkin_status=invalid_qr&offer_id={offer_2_id}"
     )
+
+def test_qr_token_expires():
+    token = create_checkin_token(123)
+
+    from itsdangerous import SignatureExpired
+
+    try:
+        verify_checkin_token(
+            token,
+            max_age_seconds=-1,
+        )
+        assert False, "Expired QR token should be rejected"
+    except SignatureExpired:
+        pass
