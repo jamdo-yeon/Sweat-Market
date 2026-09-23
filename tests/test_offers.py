@@ -930,3 +930,57 @@ def test_qr_token_expires():
         assert False, "Expired QR token should be rejected"
     except SignatureExpired:
         pass
+
+    def test_location_verification_can_return_to_chat(client):
+        creator_name, creator_email = _unique_user()
+        signup(client, username=creator_name, email=creator_email)
+
+        scheduled_at = (
+            datetime.now(timezone.utc) + timedelta(minutes=5)
+        ).isoformat()
+
+        offer_id = _create_offer(
+            client,
+            scheduled_at=scheduled_at,
+        )
+
+        r = client.post(
+            f"/offers/{offer_id}/verify-location",
+            data={
+                "latitude": "49.2781",
+                "longitude": "-122.9199",
+                "return_to": "/chat/123",
+            },
+            follow_redirects=False,
+        )
+
+        assert r.status_code == 303
+        assert r.headers["location"] == "/chat/123"
+
+def test_location_verification_rejects_external_return_url(client):
+    creator_name, creator_email = _unique_user()
+    signup(client, username=creator_name, email=creator_email)
+
+    scheduled_at = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).isoformat()
+
+    offer_id = _create_offer(
+        client,
+        scheduled_at=scheduled_at,
+    )
+
+    r = client.post(
+        f"/offers/{offer_id}/verify-location",
+        data={
+            "latitude": "49.2781",
+            "longitude": "-122.9199",
+            "return_to": "https://evil.example.com",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == (
+        f"/offers?location_status=verified&offer_id={offer_id}"
+    )
