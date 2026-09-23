@@ -9,12 +9,6 @@ def _unique_user():
     return f"user_{token}", f"{token}@test.com"
 
 
-def test_posts_new_requires_login(client):
-    r = client.get("/posts/new", follow_redirects=False)
-    assert r.status_code in (302, 303)
-    assert (r.headers.get("location") or "").startswith("/login")
-
-
 def test_logout_clears_session(client):
     username, email = _unique_user()
     signup(client, username=username, email=email, password="Passw0rd!")

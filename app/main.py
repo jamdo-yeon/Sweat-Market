@@ -26,7 +26,6 @@ from sqlmodel import Session as SQLSession, select
 # ---- Project modules
 from .db import init_db, engine
 from .auth import router as auth_router
-from .posts import router as posts_router
 from .chat import router as chat_router
 from .uploads import UPLOAD_ROOT
 from .models import User, Tx, Order
@@ -80,7 +79,6 @@ if os.getenv("VERCEL"):
 
 # ---- Routers
 app.include_router(auth_router)
-app.include_router(posts_router)
 app.include_router(chat_router)
 app.include_router(offers_router)
 

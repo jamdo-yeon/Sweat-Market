@@ -168,13 +168,22 @@
                     Your workout
                   </p>
 
-                  <button
-                    type="button"
-                    class="btn btn-primary verify-location-btn"
-                    data-offer-id="{{ offer.id }}"
-                  >
-                    Verify my location
-                  </button>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-primary verify-location-btn"
+                      data-offer-id="{{ offer.id }}"
+                    >
+                      Verify my location
+                    </button>
+
+                    <a
+                      href="/offers/{{ offer.id }}/chat"
+                      class="btn btn-ghost"
+                    >
+                      Open chat
+                    </a>
+                  </div>
 
                   {% if offer.id in qr_ready_offer_ids %}
                     <div class="space-y-2">
@@ -219,6 +228,12 @@
                   >
                     Verify my location
                   </button>
+                  <a
+                    href="/offers/{{ offer.id }}/chat"
+                    class="btn btn-ghost"
+                  >
+                    Open chat
+                  </a>
 
                   <form method="post" action="/offers/{{ offer.id }}/leave">
                     <button type="submit" class="btn btn-ghost">

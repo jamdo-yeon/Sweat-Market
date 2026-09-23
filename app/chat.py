@@ -6,7 +6,13 @@ from sqlmodel import Session, select
 import os, json, time
 
 from .db import get_session
-from .models import ChatRoom, Message, User
+from .models import (
+    ChatRoom,
+    Message,
+    User,
+    WorkoutOffer,
+    WorkoutParticipant,
+)
 from .auth import current_user
 from .uploads import UPLOAD_URL_PREFIX, upload_directory
 
@@ -41,77 +47,178 @@ class RoomManager:
 manager = RoomManager()
 
 
-def get_or_create_room(session: Session, a: int, b: int) -> ChatRoom:
-    u1, u2 = sorted([a, b])
-    room = session.exec(
-        select(ChatRoom).where(ChatRoom.user1_id == u1, ChatRoom.user2_id == u2)
+def is_workout_participant(
+    session: Session,
+    offer_id: int,
+    user_id: int,
+) -> bool:
+    participant = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id,
+            WorkoutParticipant.user_id == user_id,
+        )
     ).first()
+
+    return participant is not None
+
+
+def get_or_create_room(
+    session: Session,
+    offer_id: int,
+) -> ChatRoom:
+    room = session.exec(
+        select(ChatRoom).where(
+            ChatRoom.offer_id == offer_id
+        )
+    ).first()
+
     if not room:
-        room = ChatRoom(user1_id=u1, user2_id=u2)
+        room = ChatRoom(offer_id=offer_id)
         session.add(room)
         session.commit()
         session.refresh(room)
+
     return room
 
 
 @router.get("/chat")
-def chat_list(request: Request, session: Session = Depends(get_session)):
+def chat_list(
+    request: Request,
+    session: Session = Depends(get_session),
+):
     me = current_user(request, session)
+
     if not me:
         return RedirectResponse("/login", status_code=303)
 
-    rooms = session.exec(
-        select(ChatRoom).where((ChatRoom.user1_id == me.id) | (ChatRoom.user2_id == me.id))
+    participations = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.user_id == me.id
+        )
     ).all()
 
-    def other_id(r: ChatRoom) -> int:
-        return r.user2_id if r.user1_id == me.id else r.user1_id
+    conversations = []
 
-    others = {r.id: session.get(User, other_id(r)) for r in rooms}
+    for participation in participations:
+        offer = session.get(
+            WorkoutOffer,
+            participation.offer_id,
+        )
+
+        if not offer:
+            continue
+
+        room = get_or_create_room(
+            session,
+            offer.id,
+        )
+
+        conversations.append(
+            {
+                "room": room,
+                "offer": offer,
+            }
+        )
+
     return templates.TemplateResponse(
         request,
         "chat_list.html",
-        {"user": me, "rooms": rooms, "others": others},
+        {
+            "user": me,
+            "conversations": conversations,
+        },
     )
 
-
-@router.post("/chat/start")
-def chat_start(request: Request, user_id: int = Form(...), session: Session = Depends(get_session)):
+@router.get("/offers/{offer_id}/chat")
+def open_workout_chat(
+    offer_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
     me = current_user(request, session)
+
     if not me:
-        return RedirectResponse("/login", status_code=303)
-    if me.id == user_id:
-        return RedirectResponse("/chat", status_code=303)
+        return RedirectResponse(
+            f"/login?next=/offers/{offer_id}/chat",
+            status_code=303,
+        )
 
-    other = session.get(User, user_id)
-    if not other:
-        return RedirectResponse("/chat", status_code=303)
+    offer = session.get(WorkoutOffer, offer_id)
 
-    room = get_or_create_room(session, me.id, other.id)
-    return RedirectResponse(f"/chat/{room.id}", status_code=303)
+    if not offer:
+        return RedirectResponse("/offers", status_code=303)
 
+    if not is_workout_participant(
+        session,
+        offer_id,
+        me.id,
+    ):
+        return RedirectResponse("/offers", status_code=303)
+
+    room = get_or_create_room(
+        session,
+        offer_id,
+    )
+
+    return RedirectResponse(
+        f"/chat/{room.id}",
+        status_code=303,
+    )
 
 @router.get("/chat/{room_id}")
-def chat_room(room_id: int, request: Request, session: Session = Depends(get_session)):
+def chat_room(
+    room_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
     me = current_user(request, session)
+
     if not me:
         return RedirectResponse("/login", status_code=303)
 
     room = session.get(ChatRoom, room_id)
-    if not room or (me.id not in (room.user1_id, room.user2_id)):
+
+    if not room:
         return RedirectResponse("/chat", status_code=303)
 
-    msgs = session.exec(
-        select(Message).where(Message.room_id == room_id).order_by(Message.created_at)
+    if not is_workout_participant(
+        session,
+        room.offer_id,
+        me.id,
+    ):
+        return RedirectResponse("/chat", status_code=303)
+
+    offer = session.get(
+        WorkoutOffer,
+        room.offer_id,
+    )
+
+    messages = session.exec(
+        select(Message)
+        .where(Message.room_id == room_id)
+        .order_by(Message.created_at)
     ).all()
 
-    other_user_id = room.user2_id if room.user1_id == me.id else room.user1_id
-    other = session.get(User, other_user_id)
+    sender_ids = {
+        message.sender_id
+        for message in messages
+    }
+
+    senders = {
+        sender_id: session.get(User, sender_id)
+        for sender_id in sender_ids
+    }
 
     return templates.TemplateResponse(
         request,
         "chat_room.html",
-        {"user": me, "room": room, "other": other, "messages": msgs},
+        {
+            "user": me,
+            "room": room,
+            "offer": offer,
+            "messages": messages,
+            "senders": senders,
+        },
     )
 
 
@@ -123,7 +230,16 @@ async def ws_chat(room_id: int, websocket: WebSocket, session: Session = Depends
         return
 
     room = session.get(ChatRoom, room_id)
-    if not room or uid not in (room.user1_id, room.user2_id):
+
+    if not room:
+        await websocket.close(code=4403)
+        return
+
+    if not is_workout_participant(
+        session,
+        room.offer_id,
+        int(uid),
+    ):
         await websocket.close(code=4403)
         return
 
@@ -166,7 +282,15 @@ async def upload_image(
         return RedirectResponse("/login", status_code=303)
 
     room = session.get(ChatRoom, room_id)
-    if not room or me.id not in (room.user1_id, room.user2_id):
+
+    if not room:
+        return RedirectResponse("/chat", status_code=303)
+
+    if not is_workout_participant(
+        session,
+        room.offer_id,
+        me.id,
+    ):
         return RedirectResponse("/chat", status_code=303)
 
     ext = os.path.splitext(image.filename or "")[1].lower() or ".jpg"

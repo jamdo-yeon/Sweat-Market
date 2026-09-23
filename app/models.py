@@ -58,9 +58,15 @@ class Comment(SQLModel, table=True):
 # ---------- Part A: DM ----------
 class ChatRoom(SQLModel, table=True):
     __tablename__ = "chat_rooms"
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    user1_id: int = Field(foreign_key="users.id")
-    user2_id: int = Field(foreign_key="users.id")
+
+    offer_id: int = Field(
+        foreign_key="workout_offers.id",
+        unique=True,
+        index=True,
+    )
+
     created_at: datetime = Field(default_factory=utcnow)
 
 

@@ -1,82 +1,123 @@
 {% extends 'base.html' %}
-{% block content %}
-<section class="card mx-auto max-w-3xl overflow-hidden">
-  <header class="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[.16em] text-neutral-500">Direct message</p>
-      <h1 class="text-xl font-bold">{{ other.nickname or other.username }}</h1>
-    </div>
-    <a href="/chat" class="btn btn-ghost text-sm">All chats</a>
-  </header>
 
-  <div id="messages" class="flex min-h-80 max-h-[55vh] flex-col gap-3 overflow-y-auto bg-neutral-50 p-5" aria-live="polite">
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6">
+    <a href="/chat" class="text-sm text-gray-500 hover:text-gray-700">
+      ← Back to chats
+    </a>
+
+    <h1 class="text-2xl font-bold mt-2">
+      {{ offer.title }}
+    </h1>
+
+    <p class="text-sm text-gray-500">
+      Workout group chat
+    </p>
+  </div>
+
+  <div
+    id="messages"
+    class="border rounded-lg p-4 h-96 overflow-y-auto space-y-3 bg-white"
+  >
     {% for message in messages %}
-      <article class="max-w-[82%] rounded-xl px-4 py-3 {{ 'ml-auto bg-black text-white' if message.sender_id == user.id else 'mr-auto border border-neutral-200 bg-white' }}">
-        {% if message.image_url %}<img src="{{ message.image_url }}" class="max-h-64 rounded-lg object-cover" alt="Shared image">{% endif %}
-        {% if message.content %}<p class="whitespace-pre-wrap">{{ message.content }}</p>{% endif %}
-        <time class="mt-1 block text-[11px] opacity-60">{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</time>
-      </article>
-    {% else %}
-      <p id="empty-state" class="m-auto text-center text-sm text-neutral-500">No messages yet. Say hello to start the conversation.</p>
+      {% set sender = senders.get(message.sender_id) %}
+
+      <div>
+        <div class="text-xs text-gray-500">
+          {% if sender %}
+            {{ sender.nickname or sender.username }}
+          {% else %}
+            Unknown user
+          {% endif %}
+        </div>
+
+        {% if message.content %}
+          <div class="bg-gray-100 rounded-lg px-3 py-2 inline-block">
+            {{ message.content }}
+          </div>
+        {% endif %}
+
+        {% if message.image_url %}
+          <img
+            src="{{ message.image_url }}"
+            class="max-w-xs rounded-lg mt-1"
+            alt="Chat image"
+          >
+        {% endif %}
+      </div>
     {% endfor %}
   </div>
 
-  <div class="border-t border-neutral-200 p-4">
-    <form id="message-form" class="flex gap-2">
-      <label class="sr-only" for="message-input">Message</label>
-      <input id="message-input" class="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2" maxlength="1000" placeholder="Write a message..." autocomplete="off" required>
-      <button class="btn btn-primary" type="submit">Send</button>
-    </form>
-    <form method="post" action="/chat/{{ room.id }}/image" enctype="multipart/form-data" class="mt-3 flex items-center gap-2 text-sm">
-      <input name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="min-w-0 flex-1" required>
-      <button class="btn btn-ghost py-2" type="submit">Share image</button>
-    </form>
-    <p id="connection-status" class="mt-2 text-xs text-neutral-500">Connecting…</p>
-  </div>
-</section>
+  <form id="message-form" class="flex gap-2 mt-4">
+    <input
+      id="message-input"
+      type="text"
+      placeholder="Message your workout group..."
+      autocomplete="off"
+      class="flex-1 border rounded-lg px-3 py-2"
+    >
+
+    <button
+      type="submit"
+      class="bg-black text-white px-4 py-2 rounded-lg"
+    >
+      Send
+    </button>
+  </form>
+
+</div>
 
 <script>
-(() => {
-  const messages = document.getElementById('messages');
-  const form = document.getElementById('message-form');
-  const input = document.getElementById('message-input');
-  const status = document.getElementById('connection-status');
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const socket = new WebSocket(`${protocol}//${window.location.host}/ws/chat/{{ room.id }}`);
+  const messages = document.getElementById("messages");
+  const form = document.getElementById("message-form");
+  const input = document.getElementById("message-input");
 
-  const addMessage = (payload) => {
-    document.getElementById('empty-state')?.remove();
-    const mine = Number(payload.sender_id) === Number({{ user.id }});
-    const article = document.createElement('article');
-    article.className = `max-w-[82%] rounded-xl px-4 py-3 ${mine ? 'ml-auto bg-black text-white' : 'mr-auto border border-neutral-200 bg-white'}`;
-    if (payload.type === 'image') {
-      const img = document.createElement('img');
-      img.src = payload.image_url;
-      img.alt = 'Shared image';
-      img.className = 'max-h-64 rounded-lg object-cover';
-      article.appendChild(img);
-    } else {
-      const text = document.createElement('p');
-      text.className = 'whitespace-pre-wrap';
-      text.textContent = payload.content;
-      article.appendChild(text);
+  const protocol =
+    window.location.protocol === "https:" ? "wss" : "ws";
+
+  const socket = new WebSocket(
+    `${protocol}://${window.location.host}/ws/chat/{{ room.id }}`
+  );
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "text") {
+      const wrapper = document.createElement("div");
+
+      const message = document.createElement("div");
+      message.className =
+        "bg-gray-100 rounded-lg px-3 py-2 inline-block";
+
+      message.textContent = data.content;
+
+      wrapper.appendChild(message);
+      messages.appendChild(wrapper);
+
+      messages.scrollTop = messages.scrollHeight;
     }
-    messages.appendChild(article);
-    messages.scrollTop = messages.scrollHeight;
   };
 
-  socket.addEventListener('open', () => { status.textContent = 'Connected'; });
-  socket.addEventListener('close', () => { status.textContent = 'Disconnected — refresh to reconnect'; });
-  socket.addEventListener('error', () => { status.textContent = 'Connection error'; });
-  socket.addEventListener('message', (event) => addMessage(JSON.parse(event.data)));
-  form.addEventListener('submit', (event) => {
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
+
     const content = input.value.trim();
-    if (!content || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(JSON.stringify({ content }));
-    input.value = '';
+
+    if (!content) {
+      return;
+    }
+
+    socket.send(
+      JSON.stringify({
+        content: content
+      })
+    );
+
+    input.value = "";
   });
+
   messages.scrollTop = messages.scrollHeight;
-})();
 </script>
 {% endblock %}

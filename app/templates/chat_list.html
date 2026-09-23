@@ -1,25 +1,68 @@
 {% extends 'base.html' %}
-{% block content %}
-<h2 class="text-xl font-bold mb-4">My Chats</h2>
 
-{% if rooms|length == 0 %}
-  <p>No chats yet. Find someone in Community/Posts and press “Message”.</p>
-{% else %}
-  <ul class="space-y-2">
-    {% for r in rooms %}
-      <li class="border rounded p-3 flex justify-between items-center">
-        {% set other = others[r.id] %}
-        <div>
-          <div class="font-medium">
-            <a class="underline" href="/chat/{{ r.id }}">
-              {{ other.nickname or other.username }}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <h2 class="text-2xl font-bold mb-2">Workout Chats</h2>
+
+  <p class="text-gray-500 mb-6">
+    Chat with people in the workouts you've joined.
+  </p>
+
+  {% if conversations|length == 0 %}
+    <div class="border rounded-lg p-6 text-center bg-white">
+      <p class="font-medium">No workout chats yet.</p>
+
+      <p class="text-sm text-gray-500 mt-1">
+        Join a workout to start chatting with the group.
+      </p>
+
+      <a
+        href="/offers"
+        class="inline-block mt-4 text-blue-600 hover:underline"
+      >
+        Find workouts
+      </a>
+    </div>
+
+  {% else %}
+
+    <ul class="space-y-3">
+      {% for conversation in conversations %}
+
+        {% set room = conversation.room %}
+        {% set offer = conversation.offer %}
+
+        <li class="border rounded-lg p-4 bg-white flex justify-between items-center">
+
+          <div>
+            <a
+              href="/chat/{{ room.id }}"
+              class="font-semibold text-lg hover:underline"
+            >
+              {{ offer.title }}
             </a>
+
+            <div class="text-sm text-gray-500 mt-1">
+              {{ offer.location }}
+            </div>
+
+            <div class="text-sm text-gray-500">
+              {{ offer.scheduled_at }}
+            </div>
           </div>
-          <div class="text-sm text-gray-500">Room #{{ r.id }}</div>
-        </div>
-        <a class="text-blue-600" href="/chat/{{ r.id }}">Open</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
+
+          <a
+            href="/chat/{{ room.id }}"
+            class="text-blue-600 font-medium hover:underline"
+          >
+            Open chat
+          </a>
+
+        </li>
+
+      {% endfor %}
+    </ul>
+
+  {% endif %}
+</div>
 {% endblock %}
