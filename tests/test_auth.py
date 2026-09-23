@@ -31,3 +31,26 @@ def test_signup_login_sets_cookie(client):
 def test_protected_requires_auth(client):
     r = client.get("/profile", follow_redirects=False)
     assert r.status_code in (302, 401, 403)
+
+def test_login_rejects_external_next_redirect(client):
+    signup(
+        client,
+        username="safeuser",
+        email="safe@test.com",
+        password="Passw0rd!",
+    )
+
+    client.get("/logout")
+
+    r = client.post(
+        "/login",
+        data={
+            "email": "safe@test.com",
+            "password": "Passw0rd!",
+            "next": "https://example.com",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"
