@@ -793,3 +793,26 @@ def test_qr_blocked_when_host_is_not_verified(client):
 
     assert r.status_code == 303
     assert r.headers["location"] == "/offers"
+
+def test_login_rejects_external_next_redirect(client):
+    signup(
+        client,
+        username="safeuser",
+        email="safe@test.com",
+        password="Passw0rd!",
+    )
+
+    client.get("/logout")
+
+    r = client.post(
+        "/login",
+        data={
+            "email": "safe@test.com",
+            "password": "Passw0rd!",
+            "next": "https://example.com",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"

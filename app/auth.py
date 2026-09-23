@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
 from sqlmodel import select, Session
 from sqlalchemy.exc import IntegrityError
+from urllib.parse import urlparse
 
 from .db import get_session
 from .models import User
@@ -48,6 +49,22 @@ def current_user(request: Request, session: Session) -> User | None:
     if not uid:
         return None
     return session.get(User, uid)
+
+def safe_next_url(next_url: str | None) -> str:
+    if not next_url:
+        return "/"
+
+    parsed = urlparse(next_url)
+
+    if (
+        parsed.scheme
+        or parsed.netloc
+        or not next_url.startswith("/")
+        or next_url.startswith("//")
+    ):
+        return "/"
+
+    return next_url
 
 
 # ---------- Signup ----------
@@ -200,7 +217,7 @@ def login(
         )
 
     request.session["uid"] = int(user.id)
-    redirect_url = next or "/"
+    redirect_url = safe_next_url(next)
 
     return RedirectResponse(
         url=redirect_url,
