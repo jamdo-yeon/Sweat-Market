@@ -31,6 +31,19 @@ def distance_meters(lat1, lon1, lat2, lon2):
 
     return earth_radius_m * c
 
+def recently_verified(participant: WorkoutParticipant) -> bool:
+    if participant.location_verified_at is None:
+        return False
+
+    verified_at = participant.location_verified_at
+
+    if verified_at.tzinfo is None:
+        verified_at = verified_at.replace(tzinfo=timezone.utc)
+
+    return (
+        datetime.now(timezone.utc) - verified_at
+    ).total_seconds() <= 10 * 60
+
 
 @router.get("/offers")
 def offers_page(
@@ -45,6 +58,7 @@ def offers_page(
 
     participant_counts = {}
     joined_offer_ids = set()
+    qr_ready_offer_ids = set()
 
     for offer in offers:
         participants = session.exec(
@@ -57,6 +71,14 @@ def offers_page(
 
         if user and any(p.user_id == user.id for p in participants):
             joined_offer_ids.add(offer.id)
+
+        verified_count = sum(
+            1 for participant in participants
+            if recently_verified(participant)
+        )
+
+        if verified_count >= 2:
+            qr_ready_offer_ids.add(offer.id)
 
     creators = {
         offer.creator_id: session.get(User, offer.creator_id)
@@ -76,6 +98,7 @@ def offers_page(
             "location_error": request.query_params.get("error") == "location",
             "location_status": request.query_params.get("location_status"),
             "status_offer_id": request.query_params.get("offer_id"),
+            "qr_ready_offer_ids": qr_ready_offer_ids,
         },
     )
 
@@ -230,12 +253,12 @@ def verify_location(
     if not participant:
         return RedirectResponse("/offers", status_code=303)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
 
     scheduled_at = offer.scheduled_at
 
-    if scheduled_at.tzinfo is None:
-        scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
+    if scheduled_at.tzinfo is not None:
+        scheduled_at = scheduled_at.replace(tzinfo=None)
 
     seconds_from_workout = abs((now - scheduled_at).total_seconds())
 

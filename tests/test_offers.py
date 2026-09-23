@@ -1,7 +1,7 @@
 import uuid
 
 from sqlmodel import Session as SQLSession, select
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from app.db import engine
 from app.models import WorkoutOffer, WorkoutParticipant
@@ -197,8 +197,8 @@ def test_location_verification_succeeds_near_workout_time(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now(timezone.utc) + timedelta(minutes=5)
-    ).replace(tzinfo=None).isoformat(timespec="minutes")
+        datetime.now() + timedelta(minutes=5)
+    ).isoformat(timespec="minutes")
 
     offer_id = _create_offer(
         client,
@@ -241,8 +241,8 @@ def test_location_verification_rejected_outside_time_window(client):
     signup(client, username=creator_name, email=creator_email)
 
     scheduled_at = (
-        datetime.now(timezone.utc) + timedelta(hours=2)
-    ).replace(tzinfo=None).isoformat(timespec="minutes")
+        datetime.now() + timedelta(hours=2)
+    ).isoformat(timespec="minutes")
 
     offer_id = _create_offer(
         client,
