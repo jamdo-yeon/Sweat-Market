@@ -134,7 +134,12 @@
           <div class="mt-4 space-y-1 text-sm text-neutral-600">
             <p>
               <strong>When:</strong>
-              {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }}
+              <time
+                class="workout-time"
+                datetime="{{ offer.scheduled_at.isoformat() }}{% if offer.scheduled_at.tzinfo is none %}Z{% endif %}"
+              >
+                {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }} UTC
+              </time>
             </p>
 
             <p>
@@ -413,6 +418,20 @@
       utcTimeInput.value = localDate.toISOString();
     });
   }
+</script>
+
+<script>
+  document.querySelectorAll(".workout-time").forEach((element) => {
+    const date = new Date(element.dateTime);
+
+    element.textContent = date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  });
 </script>
 
 {% endblock %}
