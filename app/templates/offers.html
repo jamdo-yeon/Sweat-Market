@@ -234,6 +234,22 @@
                   {% endif %}
                 {% endif %}
 
+                {% if status_offer_id == offer.id|string %}
+                  {% if checkin_status == "success" %}
+                    <p class="mt-2 text-sm font-medium text-green-600">
+                      Check-in complete.
+                    </p>
+                  {% elif checkin_status == "location_required" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      Verify your location before checking in.
+                    </p>
+                  {% elif checkin_status == "not_participant" %}
+                    <p class="mt-2 text-sm text-red-600">
+                      You must join this workout before checking in.
+                    </p>
+                  {% endif %}
+                {% endif %}
+
               {% elif participant_counts[offer.id] >= offer.max_participants %}
                 <span class="text-sm font-medium text-neutral-500">
                   Full

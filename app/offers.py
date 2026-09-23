@@ -100,6 +100,7 @@ def offers_page(
             "location_status": request.query_params.get("location_status"),
             "status_offer_id": request.query_params.get("offer_id"),
             "qr_ready_offer_ids": qr_ready_offer_ids,
+            "checkin_status": request.query_params.get("checkin_status"),
         },
     )
 
@@ -330,9 +331,69 @@ def workout_qr(
     if verified_count < 2:
         return RedirectResponse("/offers", status_code=303)
 
-    payload = f"sweatmarket://checkin/{offer_id}"
+    payload = str(
+    request.url_for(
+        "checkin",
+        offer_id=offer_id,
+    )
+)
 
     return Response(
         content=qr_png_bytes(payload),
         media_type="image/png",
+    )
+
+@router.get("/offers/{offer_id}/checkin")
+def checkin(
+    offer_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    user = current_user(request, session)
+
+    if not user:
+        return RedirectResponse(
+            f"/login?next=/offers/{offer_id}/checkin",
+            status_code=303,
+        )
+
+    offer = session.get(WorkoutOffer, offer_id)
+
+    if not offer:
+        return RedirectResponse("/offers", status_code=303)
+
+    participant = session.exec(
+        select(WorkoutParticipant).where(
+            WorkoutParticipant.offer_id == offer_id,
+            WorkoutParticipant.user_id == user.id,
+        )
+    ).first()
+
+    if not participant:
+        return RedirectResponse(
+            f"/offers?checkin_status=not_participant&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    if offer.creator_id == user.id:
+        return RedirectResponse(
+            f"/offers?checkin_status=host&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    if not recently_verified(participant):
+        return RedirectResponse(
+            f"/offers?checkin_status=location_required&offer_id={offer_id}",
+            status_code=303,
+        )
+
+    participant.checked_in = True
+    participant.checked_in_at = datetime.now(timezone.utc)
+
+    session.add(participant)
+    session.commit()
+
+    return RedirectResponse(
+        f"/offers?checkin_status=success&offer_id={offer_id}",
+        status_code=303,
     )
