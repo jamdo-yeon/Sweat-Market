@@ -48,9 +48,11 @@ def recently_verified(participant: WorkoutParticipant) -> bool:
     if verified_at.tzinfo is None:
         verified_at = verified_at.replace(tzinfo=timezone.utc)
 
-    return (
+    age_seconds = (
         datetime.now(timezone.utc) - verified_at
-    ).total_seconds() <= 10 * 60
+    ).total_seconds()
+
+    return 0 <= age_seconds <= 10 * 60
 
 def participants_near_each_other(
     participants: list[WorkoutParticipant],

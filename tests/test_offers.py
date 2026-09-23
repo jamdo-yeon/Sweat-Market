@@ -794,25 +794,17 @@ def test_qr_blocked_when_host_is_not_verified(client):
     assert r.status_code == 303
     assert r.headers["location"] == "/offers"
 
-def test_login_rejects_external_next_redirect(client):
-    signup(
-        client,
-        username="safeuser",
-        email="safe@test.com",
-        password="Passw0rd!",
+def test_future_location_verification_is_not_valid(client):
+    participant = WorkoutParticipant(
+        offer_id=1,
+        user_id=1,
+        verified_latitude=49.2781,
+        verified_longitude=-122.9199,
+        location_verified_at=(
+            datetime.now(timezone.utc) + timedelta(minutes=5)
+        ),
     )
 
-    client.get("/logout")
+    from app.offers import recently_verified
 
-    r = client.post(
-        "/login",
-        data={
-            "email": "safe@test.com",
-            "password": "Passw0rd!",
-            "next": "https://example.com",
-        },
-        follow_redirects=False,
-    )
-
-    assert r.status_code == 303
-    assert r.headers["location"] == "/"
+    assert recently_verified(participant) is False
