@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import random
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Dict, List
 
 # Optional .env loading (safe if python-dotenv is missing)
@@ -25,10 +26,11 @@ from sqlmodel import Session as SQLSession, select
 # ---- Project modules
 from .config import get_secret_key
 from .db import init_db, engine
+from .demo import DemoAutoLoginMiddleware, demo_mode_enabled, seed_demo_data
 from .auth import router as auth_router
 from .chat import router as chat_router
 from .uploads import UPLOAD_ROOT
-from .models import User, Tx, Order
+from .models import User, Tx, Order, WorkoutOffer, WorkoutParticipant
 from .offers import router as offers_router
 
 # ---- Templates / Static
@@ -57,12 +59,17 @@ def _is_demo(request: Request) -> bool:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    if demo_mode_enabled():
+        with SQLSession(engine) as session:
+            seed_demo_data(session)
     _seed_mock_orders()
     yield
 
 
 app = FastAPI(title="SweatMarket", lifespan=lifespan)
 
+# Added before SessionMiddleware so Starlette wraps it with session support.
+app.add_middleware(DemoAutoLoginMiddleware, engine=engine)
 app.add_middleware(
     SessionMiddleware,
     secret_key=get_secret_key(),
@@ -91,10 +98,56 @@ app.include_router(offers_router)
 def index(request: Request):
     uid = request.session.get("uid")
     user = None
-    if uid:
-        with SQLSession(engine) as s:
+    upcoming_offers = []
+    participant_counts = {}
+    creators = {}
+    joined_upcoming_count = 0
+
+    with SQLSession(engine) as s:
+        if uid:
             user = s.exec(select(User).where(User.id == uid)).first()
-    return templates.TemplateResponse(request, "index.html", {"user": user})
+
+        now = datetime.now(timezone.utc)
+        offers = s.exec(
+            select(WorkoutOffer).order_by(WorkoutOffer.scheduled_at)
+        ).all()
+        upcoming_offers = [
+            offer
+            for offer in offers
+            if (
+                offer.scheduled_at
+                if offer.scheduled_at.tzinfo
+                else offer.scheduled_at.replace(tzinfo=timezone.utc)
+            )
+            >= now
+        ][:3]
+
+        for offer in upcoming_offers:
+            participants = s.exec(
+                select(WorkoutParticipant).where(
+                    WorkoutParticipant.offer_id == offer.id
+                )
+            ).all()
+            participant_counts[offer.id] = len(participants)
+            if user and any(item.user_id == user.id for item in participants):
+                joined_upcoming_count += 1
+
+        creators = {
+            offer.creator_id: s.get(User, offer.creator_id)
+            for offer in upcoming_offers
+        }
+
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "user": user,
+            "upcoming_offers": upcoming_offers,
+            "participant_counts": participant_counts,
+            "creators": creators,
+            "joined_upcoming_count": joined_upcoming_count,
+        },
+    )
 
 
 @app.get("/health")

@@ -22,13 +22,13 @@ def _create_offer(
     r = client.post(
         "/offers",
         data={
-            "title": "Test Workout",
+            "title": "Automated Test Workout",
             "sport": "running",
-            "location": "Simon Fraser University — Burnaby, BC",
+            "location": "Isolated Test Location",
             "latitude": "49.2781",
             "longitude": "-122.9199",
             "scheduled_at": scheduled_at,
-            "description": "Evening run",
+            "description": "Automated test fixture",
             "max_participants": str(max_participants),
         },
         follow_redirects=False,

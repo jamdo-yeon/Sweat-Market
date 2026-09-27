@@ -1,28 +1,79 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-3">Wallet</h2>
+<div class="space-y-6">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="eyebrow">Consistency pays off</p>
+      <h1 class="mt-2 text-3xl font-extrabold tracking-tight">Rewards</h1>
+      <p class="mt-2 text-sm text-neutral-500">Earn coins by showing up and completing verified workouts.</p>
+    </div>
+    {% if demo %}
+      <span class="w-fit rounded-full border border-violet-100 bg-lavender px-3 py-1.5 text-xs font-bold text-violet">Portfolio demo balance</span>
+    {% endif %}
+  </header>
 
-{% if demo %}
-<div class="mb-3 p-2 rounded bg-amber-100 text-amber-800 text-sm">
-  Demo mode — showing placeholder balance and transactions. Add <code>?demo=1</code> to force demo.
+  <section class="relative overflow-hidden rounded-[1.75rem] bg-[#201e2a] p-6 text-white shadow-soft sm:p-8">
+    <div class="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-violet/40 blur-3xl" aria-hidden="true"></div>
+    <div class="absolute bottom-0 right-1/3 h-24 w-24 rounded-full bg-amber-300/10 blur-2xl" aria-hidden="true"></div>
+    <div class="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-neutral-300">Your balance</p>
+        <div class="mt-3 flex items-baseline gap-3">
+          <span class="text-5xl font-extrabold tracking-[-.04em] sm:text-6xl">{{ u.coins }}</span>
+          <span class="text-base font-bold text-violet-200">Sweat Coins</span>
+        </div>
+        <p class="mt-4 max-w-lg text-sm leading-6 text-neutral-400">Coins recognize verified participation and can be used across the SweatMarket community experience.</p>
+      </div>
+      <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-2xl font-black text-amber-300">S</div>
+    </div>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(260px,.65fr)]">
+    <div class="surface overflow-hidden">
+      <div class="border-b border-neutral-100 px-5 py-5 sm:px-6">
+        <p class="eyebrow">Your progress</p>
+        <h2 class="mt-2 text-xl font-extrabold tracking-tight">Recent activity</h2>
+      </div>
+
+      <div class="divide-y divide-neutral-100">
+        {% for t in txs %}
+          <div class="grid gap-3 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-6">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl {% if t.amount > 0 %}bg-emerald-50 text-emerald-700{% else %}bg-neutral-100 text-neutral-600{% endif %} text-sm font-extrabold">
+              {% if t.amount > 0 %}+{% else %}−{% endif %}
+            </span>
+            <div class="min-w-0">
+              <p class="font-bold capitalize">{{ t.kind }}</p>
+              <p class="mt-0.5 truncate text-sm text-neutral-500">{{ t.note or 'Sweat Coin activity' }}</p>
+              <p class="mt-1 text-xs text-neutral-400">{{ t.created_at }}</p>
+            </div>
+            <span class="text-lg font-extrabold {% if t.amount > 0 %}text-emerald-600{% else %}text-neutral-700{% endif %}">
+              {% if t.amount > 0 %}+{% endif %}{{ t.amount }}
+            </span>
+          </div>
+        {% else %}
+          <div class="px-6 py-10 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-lavender font-extrabold text-violet">S</div>
+            <p class="mt-4 font-extrabold">No rewards yet</p>
+            <p class="mt-2 text-sm text-neutral-500">Complete a verified workout to earn your first Sweat Coins.</p>
+            <a href="/offers" class="btn btn-primary mt-5">Find a workout</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="space-y-4">
+      <div class="surface p-6">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 font-extrabold text-emerald-700">+10</span>
+        <p class="eyebrow mt-5">How to earn</p>
+        <h2 class="mt-2 text-xl font-extrabold">Complete a verified workout</h2>
+        <p class="mt-2 text-sm leading-6 text-neutral-500">Join a session, verify your location near workout time, and complete QR check-in.</p>
+      </div>
+      <a href="/dex" class="panel block p-5 transition hover:border-violet-200 hover:bg-lavender/30">
+        <p class="text-sm font-bold">Explore the community market</p>
+        <p class="mt-1 text-xs leading-5 text-neutral-500">See how Sweat Coins connect to the in-app demo economy.</p>
+        <p class="mt-3 text-xs font-bold text-violet">Open Market →</p>
+      </a>
+    </aside>
+  </section>
 </div>
-{% endif %}
-
-<div class="p-4 bg-white border rounded mb-4">
-  <div class="text-sm text-slate-500">Current Balance</div>
-  <div class="text-3xl font-semibold">{{ u.coins }} <span class="text-lg">🪙</span></div>
-</div>
-
-<h3 class="font-medium mb-2">Recent activity</h3>
-<ul class="grid gap-2">
-  {% for t in txs %}
-  <li class="p-3 bg-white border rounded flex justify-between">
-    <span class="text-slate-600">{{ t.created_at }}</span>
-    <span class="font-mono">{{ t.kind }} {{ t.amount }}</span>
-    <span class="text-slate-500">{{ t.note }}</span>
-  </li>
-  {% else %}
-  <li class="text-slate-500">No activity yet.</li>
-  {% endfor %}
-</ul>
 {% endblock %}

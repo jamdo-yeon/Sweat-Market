@@ -1,28 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<section class="card overflow-hidden">
-  <div class="bg-black px-6 py-8 text-white sm:px-8">
-    <p class="mb-2 text-xs font-semibold uppercase tracking-[.2em] text-neutral-400">
-      Workout matching
-    </p>
-    <h1 class="text-3xl font-bold">Find a training partner</h1>
-    <p class="mt-3 max-w-2xl text-neutral-300">
-      Create workout sessions, join nearby partners, and build toward verified check-ins and rewards.
-    </p>
-  </div>
+<div class="space-y-6">
+  <section class="relative overflow-hidden rounded-[1.75rem] bg-[#201e2a] px-6 py-8 text-white shadow-soft sm:px-9 sm:py-10">
+    <div class="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-violet/35 blur-3xl" aria-hidden="true"></div>
+    <div class="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[.18em] text-violet-200">Workout matching</p>
+        <h1 class="mt-3 text-3xl font-extrabold tracking-[-.03em] sm:text-4xl">Find your next training partner.</h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-neutral-300 sm:text-base">
+          Create a local session, meet people who match your pace, and build consistency together.
+        </p>
+      </div>
+      <div class="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[.08] px-4 py-3 backdrop-blur-sm">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/25 font-extrabold text-violet-200">{{ offers|length }}</span>
+        <span class="text-sm"><strong class="block">Available now</strong><span class="text-neutral-400">workout session{% if offers|length != 1 %}s{% endif %}</span></span>
+      </div>
+    </div>
+  </section>
 
-  <div class="grid gap-6 p-6 lg:grid-cols-[1fr_1.4fr] sm:p-8">
+  <div class="grid items-start gap-6 lg:grid-cols-[minmax(300px,.72fr)_minmax(0,1.35fr)]">
 
     <!-- Create workout -->
-    <div class="rounded-xl border border-neutral-200 p-5">
-      <h2 class="text-lg font-semibold">Create workout</h2>
+    <aside class="surface p-5 sm:p-6 lg:sticky lg:top-24">
+      <p class="eyebrow">Plan a session</p>
+      <h2 class="mt-2 text-2xl font-extrabold tracking-tight">Create workout</h2>
+      <p class="mt-2 text-sm leading-6 text-neutral-500">Set the activity, place, and time. Your workout chat will be ready automatically.</p>
 
       {% if user %}
-      <form method="post" action="/offers" id="create-workout-form" class="mt-4 space-y-4">
+      <form method="post" action="/offers" id="create-workout-form" class="mt-6 space-y-5">
 
         <div>
-          <label class="mb-1 block text-sm font-medium">Sport</label>
+          <label class="mb-2 block text-sm font-bold text-neutral-700">Sport</label>
           <select name="sport" required class="input w-full">
             <option value="gym">Gym</option>
             <option value="running">Running</option>
@@ -32,7 +41,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium">
+          <label class="mb-2 block text-sm font-bold text-neutral-700">
             Workout title
           </label>
 
@@ -47,30 +56,50 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium">Location</label>
+          <label class="mb-2 block text-sm font-bold text-neutral-700">Location</label>
 
-          <div id="place-autocomplete"></div>
+          <div id="place-autocomplete" class="min-h-11 rounded-xl bg-neutral-50"></div>
 
           <input type="hidden" name="location" id="workout-location">
           <input type="hidden" name="latitude" id="workout-latitude">
           <input type="hidden" name="longitude" id="workout-longitude">
           {% if location_error %}
-            <p class="mt-2 text-sm text-red-600">
+            <p class="status-error mt-2 rounded-xl px-3 py-2 text-sm">
               Please select a valid location from the suggestions.
             </p>
           {% endif %}
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium">Date & time</label>
+          <span class="mb-2 block text-sm font-bold text-neutral-700">Date & time</span>
 
-          <input
-            type="datetime-local"
-            name="scheduled_at_local"
-            id="scheduled-at-local"
-            required
-            class="input w-full"
-          >
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="min-w-0">
+              <label for="scheduled-date" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Date
+              </label>
+              <input
+                type="date"
+                name="scheduled_date"
+                id="scheduled-date"
+                required
+                class="input min-w-0 w-full"
+              >
+            </div>
+
+            <div class="min-w-0">
+              <label for="scheduled-time" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Time
+              </label>
+              <input
+                type="time"
+                name="scheduled_time"
+                id="scheduled-time"
+                required
+                class="input min-w-0 w-full"
+              >
+            </div>
+          </div>
 
           <input
             type="hidden"
@@ -80,7 +109,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium">Maximum participants</label>
+          <label class="mb-2 block text-sm font-bold text-neutral-700">Maximum participants</label>
           <input
             type="number"
             name="max_participants"
@@ -93,65 +122,75 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium">Description</label>
+          <label class="mb-2 block text-sm font-bold text-neutral-700">Description</label>
           <textarea
             name="description"
-            rows="3"
+            rows="4"
             placeholder="What kind of workout are you planning?"
             class="input w-full"
           ></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary">
-          Create workout
+        <button type="submit" class="btn btn-primary w-full">
+          Create workout <span aria-hidden="true">→</span>
         </button>
       </form>
 
       {% else %}
-      <p class="mt-3 text-sm text-neutral-600">
+      <p class="mt-5 text-sm leading-6 text-neutral-600">
         Log in to create a workout session.
       </p>
-      <a href="/login" class="btn btn-primary mt-4">
+      <a href="/login" class="btn btn-primary mt-4 w-full">
         Log in
       </a>
       {% endif %}
-    </div>
+    </aside>
 
     <!-- Available workouts -->
-    <div class="min-w-0">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold">Available workouts</h2>
-        <span class="text-sm text-neutral-500">
-          {{ offers|length }} session{% if offers|length != 1 %}s{% endif %}
+    <section class="surface min-w-0 p-5 sm:p-6">
+      <div class="mb-5 flex items-end justify-between gap-3">
+        <div>
+          <p class="eyebrow">Community sessions</p>
+          <h2 class="mt-2 text-2xl font-extrabold tracking-tight">Available workouts</h2>
+        </div>
+        <span class="rounded-full bg-lavender px-3 py-1.5 text-xs font-bold text-violet">
+          {{ offers|length }} open
         </span>
       </div>
 
       <div class="space-y-4">
         {% for offer in offers %}
-        <article class="w-full overflow-hidden rounded-xl border border-neutral-200 bg-white">
-          <div class="flex flex-col gap-4 p-5">
+        <article class="group w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-[0_16px_35px_rgba(38,34,65,.08)]">
+          <div class="flex flex-col gap-5 p-5 sm:p-6">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0 flex-1">
-                <h3 class="break-words text-lg font-semibold leading-tight">
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+                  <span class="rounded-full {% if offer.sport == 'running' %}bg-emerald-50 text-emerald-700{% elif offer.sport == 'gym' %}bg-lavender text-violet{% else %}bg-amber-50 text-amber-700{% endif %} px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide">
+                    {{ offer.sport }}
+                  </span>
+                  {% if user and offer.creator_id == user.id %}
+                    <span class="rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-bold text-white">Hosted by you</span>
+                  {% elif user and offer.id in joined_offer_ids %}
+                    <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">Joined</span>
+                  {% endif %}
+                </div>
+                <h3 class="break-words text-xl font-extrabold leading-tight tracking-tight">
                   {{ offer.title }}
                 </h3>
 
-                <p class="mt-1 text-sm text-neutral-500 capitalize">
-                  {{ offer.sport }}
-                </p>
-
-                <p class="mt-2 break-words text-sm text-neutral-600">
-                  {{ offer.location }}
+                <p class="mt-2 flex items-start gap-2 break-words text-sm leading-5 text-neutral-500">
+                  <span class="mt-0.5 text-violet" aria-hidden="true">●</span>
+                  <span>{{ offer.location }}</span>
                 </p>
               </div>
 
-              <span class="shrink-0 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700">
-                {{ participant_counts[offer.id] }}/{{ offer.max_participants }}
+              <span class="shrink-0 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-bold text-neutral-700">
+                {{ participant_counts[offer.id] }}/{{ offer.max_participants }} joined
               </span>
             </div>
 
-            <div class="grid gap-2 text-sm text-neutral-600 sm:grid-cols-[auto_1fr] sm:gap-x-4">
-              <p class="font-medium text-neutral-500">When:</p>
+            <div class="grid gap-3 rounded-xl bg-[#f8f7fb] p-4 text-sm text-neutral-600 sm:grid-cols-[auto_1fr] sm:gap-x-5">
+              <p class="font-bold text-neutral-400">When</p>
               <time
                 class="workout-time break-words"
                 datetime="{{ offer.scheduled_at.isoformat() }}{% if offer.scheduled_at.tzinfo is none %}Z{% endif %}"
@@ -159,7 +198,7 @@
                 {{ offer.scheduled_at.strftime('%b %d, %Y at %I:%M %p') }} UTC
               </time>
 
-              <p class="font-medium text-neutral-500">Created by:</p>
+              <p class="font-bold text-neutral-400">Host</p>
               <p class="break-words">
                 {% set creator = creators.get(offer.creator_id) %}
                 {% if creator %}
@@ -171,20 +210,16 @@
             </div>
 
             {% if offer.description %}
-            <p class="text-sm text-neutral-700">
+            <p class="text-sm leading-6 text-neutral-600">
               {{ offer.description }}
             </p>
             {% endif %}
 
-            <div class="mt-auto pt-1">
+            <div class="mt-auto border-t border-neutral-100 pt-4">
               {% if user %}
 
                 {% if offer.creator_id == user.id %}
                   <div class="space-y-3">
-                    <p class="text-sm font-medium text-neutral-500">
-                      Your workout
-                    </p>
-
                     <div class="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -196,7 +231,7 @@
 
                       <a
                         href="/offers/{{ offer.id }}/chat"
-                        class="btn btn-ghost"
+                        class="btn btn-secondary"
                       >
                         Open chat
                       </a>
@@ -204,7 +239,7 @@
 
                     {% if offer.id in qr_ready_offer_ids %}
                       <div class="space-y-2">
-                        <p class="text-sm font-medium text-green-600">
+                        <p class="status-success rounded-xl px-3 py-2 text-sm font-semibold">
                           Participants verified — QR check-in ready.
                         </p>
 
@@ -215,7 +250,7 @@
                         >
                       </div>
                     {% else %}
-                      <p class="text-sm text-neutral-500">
+                      <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
                         Waiting for at least 2 nearby participants to verify.
                       </p>
                     {% endif %}
@@ -247,13 +282,13 @@
                     </button>
                     <a
                       href="/offers/{{ offer.id }}/chat"
-                      class="btn btn-ghost"
+                      class="btn btn-secondary"
                     >
                       Open chat
                     </a>
 
                     <form method="post" action="/offers/{{ offer.id }}/leave" class="inline">
-                      <button type="submit" class="btn btn-ghost">
+                      <button type="submit" class="btn btn-subtle">
                         Leave workout
                       </button>
                     </form>
@@ -281,7 +316,7 @@
 
                   {% if status_offer_id == offer.id|string %}
                     {% if checkin_status == "success" %}
-                      <p class="mt-2 text-sm font-medium text-green-600">
+                      <p class="status-success mt-3 rounded-xl px-3 py-2 text-sm font-semibold">
                         Check-in complete — you earned 10 coins.
                       </p>
                     {% elif checkin_status == "location_required" %}
@@ -308,7 +343,7 @@
                   {% endif %}
 
                 {% elif participant_counts[offer.id] >= offer.max_participants %}
-                  <span class="inline-flex text-sm font-medium text-neutral-500">
+                  <span class="inline-flex rounded-xl bg-neutral-100 px-3 py-2 text-sm font-bold text-neutral-500">
                     Full
                   </span>
 
@@ -321,7 +356,7 @@
                 {% endif %}
 
               {% else %}
-                <a href="/login" class="text-sm font-medium underline">
+                <a href="/login" class="link text-sm">
                   Log in to join
                 </a>
               {% endif %}
@@ -330,18 +365,19 @@
         </article>
 
         {% else %}
-        <div class="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-          <p class="font-medium">No workouts yet</p>
+        <div class="rounded-2xl border border-dashed border-violet-200 bg-lavender/40 p-10 text-center">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white font-extrabold text-violet shadow-sm">+</div>
+          <p class="mt-4 font-extrabold">No workouts yet</p>
           <p class="mt-1 text-sm text-neutral-500">
             Create the first workout session.
           </p>
         </div>
         {% endfor %}
       </div>
-    </div>
+    </section>
 
   </div>
-</section>
+</div>
 
 {% if google_maps_api_key %}
 <script>
@@ -436,20 +472,44 @@
 
 <script>
   const workoutForm = document.getElementById("create-workout-form");
-  const localTimeInput = document.getElementById("scheduled-at-local");
+  const dateInput = document.getElementById("scheduled-date");
+  const timeInput = document.getElementById("scheduled-time");
   const utcTimeInput = document.getElementById("scheduled-at");
 
   if (workoutForm) {
-    workoutForm.addEventListener("submit", () => {
-      const localValue = localTimeInput.value;
+    workoutForm.addEventListener("submit", (event) => {
+      timeInput.setCustomValidity("");
 
-      if (!localValue) {
+      if (!dateInput.value || !timeInput.value) {
         return;
       }
 
-      const localDate = new Date(localValue);
+      const [year, month, day] = dateInput.value.split("-").map(Number);
+      const [hours, minutes] = timeInput.value.split(":").map(Number);
+      const localDateTime = new Date(
+        year,
+        month - 1,
+        day,
+        hours,
+        minutes
+      );
 
-      utcTimeInput.value = localDate.toISOString();
+      const isValidLocalDateTime =
+        !Number.isNaN(localDateTime.getTime()) &&
+        localDateTime.getFullYear() === year &&
+        localDateTime.getMonth() === month - 1 &&
+        localDateTime.getDate() === day &&
+        localDateTime.getHours() === hours &&
+        localDateTime.getMinutes() === minutes;
+
+      if (!isValidLocalDateTime) {
+        event.preventDefault();
+        timeInput.setCustomValidity("Enter a valid local date and time.");
+        timeInput.reportValidity();
+        return;
+      }
+
+      utcTimeInput.value = localDateTime.toISOString();
     });
   }
 </script>

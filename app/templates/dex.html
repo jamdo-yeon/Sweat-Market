@@ -1,55 +1,169 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-3">Coin Exchange (Toy)</h2>
+<div class="space-y-6">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="eyebrow">Community economy</p>
+      <h1 class="mt-2 text-3xl font-extrabold tracking-tight">Market</h1>
+      <p class="mt-2 text-sm text-neutral-500">Use your Sweat Coins in the community market.</p>
+    </div>
+    {% if demo %}
+      <span class="w-fit rounded-full border border-violet-100 bg-lavender px-3 py-1.5 text-xs font-bold text-violet">Demo orders · in-memory only</span>
+    {% endif %}
+  </header>
 
-{% if demo %}
-<div class="mb-3 p-2 rounded bg-amber-100 text-amber-800 text-sm">
-  Demo mode — orders are in-memory only. Posting here won’t touch a DB.
+  <section class="grid gap-4 sm:grid-cols-2">
+    <div class="surface flex items-center justify-between gap-4 p-5">
+      <div>
+        <p class="text-sm font-semibold text-neutral-500">Sweat Coin market</p>
+        <p class="mt-2 text-2xl font-extrabold">Community exchange</p>
+        <p class="mt-1 text-xs text-neutral-400">A lightweight in-app reward market demo.</p>
+      </div>
+      <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-lavender font-extrabold text-violet">S</span>
+    </div>
+    <a href="/wallet" class="surface flex items-center justify-between gap-4 p-5 transition hover:-translate-y-0.5 hover:border-violet-200">
+      <div>
+        <p class="text-sm font-semibold text-neutral-500">Your rewards</p>
+        {% if user %}
+          <p class="mt-2 text-2xl font-extrabold">{{ user.coins }} <span class="text-sm text-neutral-400">coins</span></p>
+        {% else %}
+          <p class="mt-2 text-lg font-extrabold">Log in to view balance</p>
+        {% endif %}
+        <p class="mt-1 text-xs font-bold text-violet">Open Rewards →</p>
+      </div>
+      <span class="text-xl text-neutral-300">→</span>
+    </a>
+  </section>
+
+  <section class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(290px,.65fr)]">
+    <div class="surface min-w-0 overflow-hidden p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="eyebrow">Market activity</p>
+          <h2 class="mt-2 text-xl font-extrabold tracking-tight">Sweat Coin movement</h2>
+        </div>
+        <span class="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-500">Demo trend</span>
+      </div>
+      <div class="mt-6 h-64 min-w-0 sm:h-72">
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+
+    <form method="post" action="/dex/new{% if demo %}?demo=1{% endif %}" class="surface p-5 sm:p-6">
+      <p class="eyebrow">New listing</p>
+      <h2 class="mt-2 text-xl font-extrabold tracking-tight">Create order</h2>
+      <p class="mt-2 text-sm leading-5 text-neutral-500">Post a simple buy or sell order using Sweat Coins.</p>
+
+      <div class="mt-6 space-y-5">
+        <div>
+          <label class="mb-2 block text-sm font-bold">Order type</label>
+          <select name="side" class="input w-full">
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-bold">Price</label>
+          <input name="price" type="number" step="1" min="1" placeholder="Coin price" class="input w-full" required>
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-bold">Amount</label>
+          <input name="amount" type="number" step="1" min="1" placeholder="Quantity" class="input w-full" required>
+        </div>
+        <button class="btn btn-primary w-full">Post order</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="grid gap-6 md:grid-cols-2">
+    <div class="surface overflow-hidden">
+      <div class="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[.12em] text-emerald-600">Demand</p>
+          <h2 class="mt-1 text-lg font-extrabold">Buy orders</h2>
+        </div>
+        <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{{ buys|length }} open</span>
+      </div>
+      <div class="grid grid-cols-2 border-b border-neutral-100 bg-[#faf9fd] px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+        <span>Price</span><span class="text-right">Amount</span>
+      </div>
+      <div class="divide-y divide-neutral-100">
+        {% for o in buys %}
+          <div class="grid grid-cols-2 px-5 py-3.5 text-sm"><strong>{{ o.price }}</strong><span class="text-right text-neutral-500">{{ o.amount }}</span></div>
+        {% else %}
+          <div class="px-5 py-8 text-center text-sm text-neutral-500">No buy orders yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="surface overflow-hidden">
+      <div class="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[.12em] text-rose-500">Supply</p>
+          <h2 class="mt-1 text-lg font-extrabold">Sell orders</h2>
+        </div>
+        <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">{{ sells|length }} open</span>
+      </div>
+      <div class="grid grid-cols-2 border-b border-neutral-100 bg-[#faf9fd] px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+        <span>Price</span><span class="text-right">Amount</span>
+      </div>
+      <div class="divide-y divide-neutral-100">
+        {% for o in sells %}
+          <div class="grid grid-cols-2 px-5 py-3.5 text-sm"><strong>{{ o.price }}</strong><span class="text-right text-neutral-500">{{ o.amount }}</span></div>
+        {% else %}
+          <div class="px-5 py-8 text-center text-sm text-neutral-500">No sell orders yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 </div>
-{% endif %}
 
-<form method="post" action="/dex/new{% if demo %}?demo=1{% endif %}" class="grid gap-2 max-w-xl mb-6">
-  <div class="grid grid-cols-3 gap-2">
-    <select name="side" class="border p-2 rounded">
-      <option value="buy">Buy</option>
-      <option value="sell">Sell</option>
-    </select>
-    <input name="price" type="number" step="1" placeholder="Price" class="border p-2 rounded" required/>
-    <input name="amount" type="number" step="1" placeholder="Amount" class="border p-2 rounded" required/>
-  </div>
-  <button class="bg-indigo-600 text-white rounded px-3 py-2">Post</button>
-</form>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-  <div>
-    <h3 class="font-medium mb-2">Buy Orders</h3>
-    <ul class="grid gap-2">
-      {% for o in buys %}
-      <li class="p-2 bg-white border rounded flex justify-between"><b>{{ o.price }}</b><span>x {{ o.amount }}</span></li>
-      {% else %}<li class="text-slate-500">none</li>{% endfor %}
-    </ul>
-  </div>
-  <div>
-    <h3 class="font-medium mb-2">Sell Orders</h3>
-    <ul class="grid gap-2">
-      {% for o in sells %}
-      <li class="p-2 bg-white border rounded flex justify-between"><b>{{ o.price }}</b><span>x {{ o.amount }}</span></li>
-      {% else %}<li class="text-slate-500">none</li>{% endfor %}
-    </ul>
-  </div>
-</div>
-
-<canvas id="chart" height="160"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Simple live-looking chart (client-side only)
-const labels = Array.from({length: 32}, (_, i) => i);
-const base = 100 + Math.random() * 4;
-const data = labels.map((_, i) => Math.round(base + Math.sin(i/3)*5 + (Math.random()-0.5)*3));
-new Chart(document.getElementById('chart'), {
-  type: 'line',
-  data: { labels, datasets: [{ label: 'Price', data }] },
-  options: { responsive: true, plugins: { legend: { display: false } } }
-});
+  const labels = Array.from({ length: 32 }, (_, index) => index + 1);
+  const basePrice = 100 + Math.random() * 4;
+  const marketData = labels.map((_, index) =>
+    Math.round(basePrice + Math.sin(index / 3) * 5 + (Math.random() - 0.5) * 3)
+  );
+  const chartCanvas = document.getElementById("chart");
+  const chartContext = chartCanvas.getContext("2d");
+  const chartFill = chartContext.createLinearGradient(0, 0, 0, 280);
+  chartFill.addColorStop(0, "rgba(105, 87, 223, .22)");
+  chartFill.addColorStop(1, "rgba(105, 87, 223, 0)");
+
+  new Chart(chartContext, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data: marketData,
+        borderColor: "#6957df",
+        backgroundColor: chartFill,
+        borderWidth: 2.5,
+        fill: true,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: .38,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { display: false },
+          border: { display: false },
+        },
+        y: {
+          grid: { color: "rgba(105, 87, 223, .08)" },
+          ticks: { color: "#8a8793", padding: 8 },
+          border: { display: false },
+        },
+      },
+    },
+  });
 </script>
 {% endblock %}

@@ -76,7 +76,7 @@ Originally built during **CSSS Fall Hacks 2025**, the project was later expanded
 
 ## 🧪 Testing
 
-SweatMarket includes **36 automated tests** covering critical backend and integration flows.
+SweatMarket includes **44 automated tests** covering critical backend and integration flows.
 
 Tests include:
 
@@ -196,6 +196,7 @@ Create a `.env` file in the project root:
 SECRET_KEY=your-secret-key
 DATABASE_URL=sqlite:///./sweatmarket.db
 GOOGLE_MAPS_API_KEY=your-google-maps-key
+DEMO_MODE=false
 ```
 
 ### 5. Start the application
@@ -222,7 +223,18 @@ For a production-style deployment, configure:
 SECRET_KEY
 DATABASE_URL
 GOOGLE_MAPS_API_KEY
+DEMO_MODE
 ```
+
+Set `DEMO_MODE=true` for the portfolio deployment to seed two demo users and
+two upcoming Surrey workouts, then automatically sign unauthenticated visitors
+in as `Engineering Student`. Seeding is idempotent and runs against the
+configured database. Use persistent PostgreSQL in production; Vercel's
+temporary SQLite filesystem does not preserve demo or visitor data reliably.
+
+`DEMO_USER_PASSWORD` is optional. If it is omitted, the seeded accounts receive
+randomly generated password hashes and remain accessible through demo
+auto-login without committing a plaintext password.
 
 A hosted PostgreSQL database is recommended for persistent production data. Vercel's local filesystem and SQLite storage are not durable across serverless instances.
 

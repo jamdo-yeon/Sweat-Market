@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f7fb">
   <title>{{ page_title or "SweatMarket" }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -10,13 +11,16 @@
       theme: {
         extend: {
           colors: {
-            ink:   '#111111',
-            coal:  '#0a0a0a',
-            ash:   '#f6f6f6',
-            smoke: '#eaeaea',
+            ink: '#17161f',
+            ash: '#f7f7fb',
+            violet: '#6957df',
+            lavender: '#efedff',
           },
           fontFamily: {
-            ui: ['Inter','ui-sans-serif','system-ui','Apple SD Gothic Neo','Noto Sans','Segoe UI','Roboto'],
+            ui: ['Inter', 'ui-sans-serif', 'system-ui', 'Apple SD Gothic Neo', 'Noto Sans', 'Segoe UI', 'Roboto'],
+          },
+          boxShadow: {
+            soft: '0 20px 50px rgba(38, 34, 65, .08)',
           }
         }
       }
@@ -24,74 +28,167 @@
   </script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <style>
-    .wrap { max-width: 1024px; }
-    .card { border: 1px solid #e5e5e5; border-radius: 1rem; background: white; box-shadow: 0 10px 30px rgba(0,0,0,.04); }
-    .muted { color: #666; }
-    .link { color: #6d28d9; text-decoration: underline; text-underline-offset: 3px; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: .65rem; padding: .65rem 1rem; font-weight: 600; }
-    .btn-primary { background: #111; color: white; }
-    .btn-primary:hover { background: #333; }
-    .btn-ghost { border: 1px solid #d4d4d4; background: white; color: #111; }
-    .btn-ghost:hover { background: #f5f5f5; }
+    :root {
+      --accent: #6957df;
+      --accent-dark: #5544c5;
+      --ink: #17161f;
+      --muted: #696774;
+      --line: #e7e5ee;
+      --surface: #ffffff;
+      --canvas: #f7f7fb;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--canvas); }
+    body { color: var(--ink); -webkit-font-smoothing: antialiased; }
+    .wrap { width: 100%; max-width: 1180px; }
+    .card, .surface {
+      border: 1px solid var(--line);
+      border-radius: 1.5rem;
+      background: rgba(255, 255, 255, .96);
+      box-shadow: 0 18px 45px rgba(38, 34, 65, .06);
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 1.125rem;
+      background: var(--surface);
+    }
+    .muted { color: var(--muted); }
+    .link { color: var(--accent-dark); font-weight: 650; text-underline-offset: 3px; }
+    .link:hover { text-decoration: underline; }
+    .eyebrow {
+      color: var(--accent-dark);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .input {
+      min-height: 2.8rem;
+      border: 1px solid #dcd9e5;
+      border-radius: .8rem;
+      background: #fff;
+      padding: .68rem .82rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .input:hover { border-color: #bbb5d0; }
+    .input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(105, 87, 223, .12);
+    }
+    textarea.input { resize: vertical; }
+    .btn {
+      display: inline-flex;
+      min-height: 2.7rem;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      border-radius: .8rem;
+      padding: .68rem 1rem;
+      font-size: .875rem;
+      font-weight: 750;
+      line-height: 1;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:focus-visible { outline: 3px solid rgba(105, 87, 223, .25); outline-offset: 2px; }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 10px 24px rgba(105, 87, 223, .22);
+    }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-secondary { background: #efedff; color: #4e3db8; }
+    .btn-secondary:hover { background: #e5e1ff; }
+    .btn-ghost { border: 1px solid #dedbe8; background: white; color: #35323f; }
+    .btn-ghost:hover { border-color: #c7c1da; background: #faf9fd; }
+    .btn-subtle { background: transparent; color: #777380; }
+    .btn-subtle:hover { background: #f2f0f6; color: #3f3b49; }
+    .nav-link {
+      border-radius: .7rem;
+      padding: .55rem .78rem;
+      color: #6b6875;
+      font-size: .875rem;
+      font-weight: 650;
+      transition: background .18s ease, color .18s ease;
+    }
+    .nav-link:hover { background: #f3f1f8; color: var(--ink); }
+    .nav-link-active { background: #efedff; color: #5140bb; }
+    .status-success { border: 1px solid #bce5ce; background: #edf9f2; color: #187044; }
+    .status-error { border: 1px solid #f0c3c3; background: #fff1f1; color: #a13535; }
+    gmp-place-autocomplete { display: block; width: 100%; }
+    @media (max-width: 767px) {
+      .card, .surface { border-radius: 1.15rem; }
+    }
   </style>
 </head>
 
 <body class="min-h-dvh bg-ash font-ui text-ink">
-  <!-- Top Nav -->
-  <header class="sticky top-0 z-40 bg-black text-white">
-    <div class="wrap mx-auto flex items-center justify-between px-4 py-3">
-      <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 text-lg font-semibold">
-        <img src="/logo.svg" class="h-8 w-8" alt="SweatMarket logo"/>
-        <span class="text-white">SweatMarket</span>
+  <header class="sticky top-0 z-40 border-b border-[#e9e7ef] bg-white/90 backdrop-blur-xl">
+    <div class="wrap mx-auto flex h-16 items-center justify-between gap-5 px-4 sm:px-6">
+      <a href="/" class="flex shrink-0 items-center gap-3" aria-label="SweatMarket home">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#201e2a] shadow-sm">
+          <img src="/logo.svg" class="h-7 w-7" alt="">
+        </span>
+        <span>
+          <span class="block text-[15px] font-extrabold tracking-tight">SweatMarket</span>
+          <span class="hidden text-[10px] font-semibold uppercase tracking-[.14em] text-neutral-400 sm:block">Move together</span>
+        </span>
       </a>
 
-      <!-- Nav -->
-      <nav class="hidden md:flex items-center gap-6 text-sm">
-        <a href="/" class="hover:opacity-70">Home</a>
-        <a href="/offers" class="hover:opacity-70">Offers</a>
-        <a href="/wallet" class="hover:opacity-70">Wallet</a>
-        <!-- Market points to our DEX route -->
-        <a href="/dex" class="hover:opacity-70">Market</a>
-        <a href="/chat" class="hover:opacity-70">Chat</a>
-        <a href="/profile/edit" class="hover:opacity-70">Profile</a>
+      <nav class="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+        <a href="/" class="nav-link {% if request.url.path == '/' %}nav-link-active{% endif %}">Home</a>
+        <a href="/offers" class="nav-link {% if request.url.path.startswith('/offers') %}nav-link-active{% endif %}">Workouts</a>
+        <a href="/chat" class="nav-link {% if request.url.path.startswith('/chat') %}nav-link-active{% endif %}">Chat</a>
+        <a href="/wallet" class="nav-link {% if request.url.path.startswith('/wallet') %}nav-link-active{% endif %}">Rewards</a>
+        <a href="/dex" class="nav-link {% if request.url.path.startswith('/dex') %}nav-link-active{% endif %}">Market</a>
+      </nav>
 
+      <div class="flex shrink-0 items-center gap-2">
         {% if user %}
+          <a href="/profile/edit" class="hidden items-center gap-2 rounded-xl border border-neutral-200 bg-white py-1.5 pl-1.5 pr-3 text-sm font-semibold text-neutral-700 sm:flex">
+            <span class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-lavender text-xs font-extrabold text-violet">
+              {% if user.avatar_url %}
+                <img src="{{ user.avatar_url }}" class="h-full w-full object-cover" alt="">
+              {% else %}
+                {{ (user.nickname or user.username)[0]|upper }}
+              {% endif %}
+            </span>
+            <span class="max-w-32 truncate">{{ user.nickname or user.username }}</span>
+          </a>
           <form action="/logout" method="post">
-            <button class="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300">
-              Logout ({{ user.username }})
-            </button>
+            <button class="btn btn-subtle min-h-9 px-2.5" aria-label="Log out">Log out</button>
           </form>
         {% else %}
-          <a href="/login" class="px-4 py-2 text-sm font-medium hover:opacity-70">Login</a>
-          <a href="/signup" class="px-4 py-2 text-sm font-medium text-black bg-white rounded-md hover:bg-neutral-200">
-            Signup
-          </a>
+          <a href="/login" class="btn btn-subtle min-h-9">Log in</a>
+          <a href="/signup" class="btn btn-primary min-h-9">Join now</a>
         {% endif %}
-      </nav>
+      </div>
     </div>
-    <nav class="md:hidden overflow-x-auto border-t border-neutral-800 px-4 py-2 text-sm">
-      <div class="mx-auto flex w-max items-center gap-5">
-        <a href="/" class="hover:opacity-70">Home</a>
-        <a href="/offers" class="hover:opacity-70">Offers</a>
-        <a href="/wallet" class="hover:opacity-70">Wallet</a>
-        <a href="/dex" class="hover:opacity-70">Market</a>
-        <a href="/chat" class="hover:opacity-70">Chat</a>
-        <a href="/profile/edit" class="hover:opacity-70">Profile</a>
+
+    <nav class="overflow-x-auto border-t border-neutral-100 px-4 py-2 md:hidden" aria-label="Mobile navigation">
+      <div class="mx-auto flex w-max items-center gap-1">
+        <a href="/" class="nav-link {% if request.url.path == '/' %}nav-link-active{% endif %}">Home</a>
+        <a href="/offers" class="nav-link {% if request.url.path.startswith('/offers') %}nav-link-active{% endif %}">Workouts</a>
+        <a href="/chat" class="nav-link {% if request.url.path.startswith('/chat') %}nav-link-active{% endif %}">Chat</a>
+        <a href="/wallet" class="nav-link {% if request.url.path.startswith('/wallet') %}nav-link-active{% endif %}">Rewards</a>
+        <a href="/profile/edit" class="nav-link {% if request.url.path.startswith('/profile') %}nav-link-active{% endif %}">Profile</a>
       </div>
     </nav>
   </header>
 
-  <!-- Page -->
-  <main class="wrap mx-auto px-4 py-8">
+  <main class="wrap mx-auto px-4 py-6 sm:px-6 sm:py-9">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-neutral-200">
-    <div class="wrap mx-auto px-4 py-6 text-xs text-neutral-500">
-      © SweatMarket — built with FastAPI
-    </div>
-  </footer>
+  {% if not (request.url.path.startswith('/chat/') and request.url.path != '/chat') %}
+    <footer class="mt-8 border-t border-[#e7e5ee] bg-white/60">
+      <div class="wrap mx-auto flex flex-col gap-2 px-4 py-7 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <p>© SweatMarket · Fitness accountability, made social.</p>
+        <p>Built with FastAPI, SQLModel and WebSockets.</p>
+      </div>
+    </footer>
+  {% endif %}
 </body>
 </html>
