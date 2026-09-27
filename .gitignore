@@ -37,3 +37,19 @@ static/chat_images/
 # Docker / Vercel
 *.log
 .vercel
+cat >> .gitignore <<'EOF'
+
+# Local secrets
+.env
+.env.*
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+EOF
