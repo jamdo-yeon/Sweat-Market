@@ -62,6 +62,28 @@ def test_create_offer_requires_login(client):
     assert r.headers["location"] == "/login"
 
 
+def test_create_offer_with_blank_coordinates_shows_location_error(client):
+    username, email = _unique_user()
+    signup(client, username=username, email=email)
+
+    r = client.post(
+        "/offers",
+        data={
+            "title": "Evening Run",
+            "sport": "running",
+            "location": "",
+            "latitude": "",
+            "longitude": "",
+            "scheduled_at": "2026-09-25T18:00",
+            "max_participants": "3",
+        },
+        follow_redirects=False,
+    )
+
+    assert r.status_code == 303
+    assert r.headers["location"] == "/offers?error=location"
+
+
 def test_creator_is_added_as_participant(client):
     username, email = _unique_user()
     signup(client, username=username, email=email)

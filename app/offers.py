@@ -159,8 +159,8 @@ def create_offer(
     title: str = Form(...),
     sport: str = Form(...),
     location: str = Form(...),
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
+    latitude: str | None = Form(None),
+    longitude: str | None = Form(None),
     scheduled_at: str = Form(...),
     description: str | None = Form(None),
     max_participants: int = Form(2),
@@ -171,7 +171,14 @@ def create_offer(
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    if latitude is None or longitude is None:
+    try:
+        parsed_latitude = float(latitude) if latitude else None
+        parsed_longitude = float(longitude) if longitude else None
+    except ValueError:
+        parsed_latitude = None
+        parsed_longitude = None
+
+    if parsed_latitude is None or parsed_longitude is None:
         return RedirectResponse("/offers?error=location", status_code=303)
 
     offer = WorkoutOffer(
@@ -179,8 +186,8 @@ def create_offer(
         title=title.strip(),
         sport=sport.strip(),
         location=location.strip(),
-        latitude=latitude,
-        longitude=longitude,
+        latitude=parsed_latitude,
+        longitude=parsed_longitude,
         scheduled_at=datetime.fromisoformat(
             scheduled_at.replace("Z", "+00:00")
         ),
