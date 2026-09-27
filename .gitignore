@@ -5,7 +5,11 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+
+# Environment / secrets
 .env
+.env.*
+!.env.example
 
 # IDE
 .idea/
@@ -30,7 +34,6 @@ static/avatars/
 static/post_images/
 static/chat_images/
 
-# Docker
+# Docker / Vercel
 *.log
 .vercel
-.env*

@@ -17,7 +17,7 @@ def _sqlite_path_from_url(url: str) -> str:
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///./sweatmarket.db")
 DB_PATH = _sqlite_path_from_url(DB_URL)
 
-print(f"[migrate] DATABASE_URL={DB_URL}")
+print("[migrate] DATABASE_URL configured")
 print(f"[migrate] DB_PATH={DB_PATH}")
 
 if not os.path.exists(DB_PATH):
